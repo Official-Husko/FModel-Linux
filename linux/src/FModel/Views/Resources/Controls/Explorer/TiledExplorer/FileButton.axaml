@@ -1,0 +1,53 @@
+<UserControl x:Class="FModel.Views.Resources.Controls.TiledExplorer.FileButton"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:FModel.Views.Resources.Controls"
+             xmlns:converters="using:FModel.Views.Resources.Converters"
+             Width="128" Height="192"
+             Background="{DynamicResource Layer4BackgroundBrush}">
+    <Grid RowDefinitions="Auto,2,*">
+        <Grid Grid.Row="0" Height="128" Background="{DynamicResource Layer3BorderBrush}">
+            <Image Stretch="Uniform" Source="{Binding PreviewImage}" controls:ImageAnimation.Frames="{Binding PreviewImage.AnimationFrames}" />
+            <Path x:Name="FallbackIcon" Width="64" Stretch="Uniform"
+                  IsVisible="{Binding PreviewImage, Converter={x:Static ObjectConverters.IsNull}}">
+                <Path.Data>
+                    <MultiBinding Converter="{x:Static converters:FileToGeometryConverter.Instance}">
+                        <Binding Path="AssetCategory" />
+                        <Binding Path="ResolvedAssetType" />
+                        <Binding Path="AssetFamily" />
+                    </MultiBinding>
+                </Path.Data>
+                <Path.Fill>
+                    <MultiBinding Converter="{x:Static converters:FileToGeometryConverter.Instance}">
+                        <Binding Path="AssetCategory" />
+                        <Binding Path="ResolvedAssetType" />
+                        <Binding Path="AssetFamily" />
+                    </MultiBinding>
+                </Path.Fill>
+            </Path>
+            <!-- TextureNumTemplate, hidden when NumTextures is 0 -->
+            <ContentControl Content="{Binding NumTextures}" ContentTemplate="{DynamicResource TextureNumTemplate}"
+                            IsVisible="{Binding NumTextures, Converter={x:Static converters:IntGreaterThanZeroToVisibilityConverter.Instance}}" />
+        </Grid>
+
+        <Rectangle Grid.Row="1" Fill="{Binding #FallbackIcon.Fill, FallbackValue=Red}" />
+
+        <Grid Grid.Row="2" Margin="5" RowDefinitions="*,Auto">
+            <TextBlock Grid.Row="0" Text="{Binding Asset.NameWithoutExtension, FallbackValue='Asset Name'}"
+                       FontSize="13" TextWrapping="Wrap" TextTrimming="CharacterEllipsis" FontWeight="DemiBold"
+                       TextAlignment="Left" HorizontalAlignment="Left" VerticalAlignment="Top"
+                       Foreground="{DynamicResource ForegroundBrush}" />
+
+            <Grid Grid.Row="1" ColumnDefinitions="*,5,Auto">
+                <TextBlock Grid.Column="0" Text="{Binding ResolvedAssetType, FallbackValue='Asset Type'}"
+                           FontSize="9" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontWeight="Normal"
+                           TextAlignment="Left" HorizontalAlignment="Left" VerticalAlignment="Bottom"
+                           Foreground="{DynamicResource DisabledForegroundBrush}" />
+                <TextBlock Grid.Column="2" Text="{Binding Asset.Size, Converter={x:Static converters:SizeToStringConverter.Instance}, FallbackValue='0 B'}"
+                           FontSize="9" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" FontWeight="Normal"
+                           TextAlignment="Right" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                           Foreground="{DynamicResource DisabledForegroundBrush}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>

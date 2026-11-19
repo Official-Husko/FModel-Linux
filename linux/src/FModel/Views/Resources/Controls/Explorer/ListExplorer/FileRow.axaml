@@ -1,0 +1,38 @@
+<UserControl x:Class="FModel.Views.Resources.Controls.ListExplorer.FileRow"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="using:FModel.Views.Resources.Controls"
+             xmlns:converters="using:FModel.Views.Resources.Converters">
+    <!-- columns: ExplorerNameColumn / ExplorerTypeColumn / ExplorerDetailsColumn -->
+    <Grid Height="32" Margin="8,0" ColumnDefinitions="3*,1*,1.2*">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+            <Grid Width="20" Height="20" Margin="0 0 8 0">
+                <Image Stretch="Uniform" Source="{Binding PreviewImage}" controls:ImageAnimation.Frames="{Binding PreviewImage.AnimationFrames}" />
+                <Path x:Name="FallbackIcon" Stretch="Uniform"
+                      IsVisible="{Binding PreviewImage, Converter={x:Static ObjectConverters.IsNull}}">
+                    <Path.Data>
+                        <MultiBinding Converter="{x:Static converters:FileToGeometryConverter.Instance}">
+                            <Binding Path="AssetCategory" />
+                            <Binding Path="ResolvedAssetType" />
+                            <Binding Path="AssetFamily" />
+                        </MultiBinding>
+                    </Path.Data>
+                    <Path.Fill>
+                        <MultiBinding Converter="{x:Static converters:FileToGeometryConverter.Instance}">
+                            <Binding Path="AssetCategory" />
+                            <Binding Path="ResolvedAssetType" />
+                            <Binding Path="AssetFamily" />
+                        </MultiBinding>
+                    </Path.Fill>
+                </Path>
+            </Grid>
+            <TextBlock Text="{Binding Asset.NameWithoutExtension}" VerticalAlignment="Center" FontSize="13" FontWeight="DemiBold"
+                       TextTrimming="CharacterEllipsis" Foreground="{DynamicResource ForegroundBrush}" />
+        </StackPanel>
+        <TextBlock Grid.Column="1" Text="{Binding ResolvedAssetType}" VerticalAlignment="Center" FontSize="12"
+                   TextTrimming="CharacterEllipsis" Foreground="{DynamicResource DisabledForegroundBrush}" />
+        <TextBlock Grid.Column="2" Text="{Binding Asset.Size, Converter={x:Static converters:SizeToStringConverter.Instance}}"
+                   VerticalAlignment="Center" HorizontalAlignment="Right" FontSize="12"
+                   Foreground="{DynamicResource DisabledForegroundBrush}" />
+    </Grid>
+</UserControl>

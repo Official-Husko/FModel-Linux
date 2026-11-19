@@ -1,0 +1,199 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:FModel.Views.Resources.Controls"
+        xmlns:explorer="using:FModel.Views.Resources.Controls.Explorer"
+        xmlns:tiledExplorer="using:FModel.Views.Resources.Controls.TiledExplorer"
+        xmlns:listExplorer="using:FModel.Views.Resources.Controls.ListExplorer">
+    <!-- Notes:
+         * AssetExplorerListBox / FolderTree use StyleKeyOverride=ListBox, select them with "ListBox.Class".
+         * The WPF VirtualizingWrapPanel (NuGet) is replaced by explorer:VirtualizingWrapPanel.
+         * The WPF IsSelected container bindings are not used: Avalonia pushes the container value back into the selection
+           when a (recycled) container gets prepared, which deselected items. MainWindow.SyncSelection keeps the lists and
+           GameFileViewModel.IsSelected in sync instead.
+         * The WPF EventSetters (double click / right click) are implemented by explorer:AssetExplorerBehavior. -->
+    <Styles.Resources>
+        <LinearGradientBrush x:Key="TiledFolderTabBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#FFE8C480" Offset="0" />
+            <GradientStop Color="#FFD9AA63" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="TiledFolderBodyBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#FFF3D9A4" Offset="0" />
+            <GradientStop Color="#FFE5BD77" Offset="1" />
+        </LinearGradientBrush>
+        <SolidColorBrush x:Key="TiledFolderOutlineBrush" Color="#D8A360" />
+
+        <GridLength x:Key="ExplorerNameColumn">3*</GridLength>
+        <GridLength x:Key="ExplorerTypeColumn">1*</GridLength>
+        <GridLength x:Key="ExplorerDetailsColumn">1.2*</GridLength>
+
+        <DataTemplate x:Key="TiledFileDataTemplate">
+            <tiledExplorer:FileButton />
+        </DataTemplate>
+        <DataTemplate x:Key="TiledFolderDataTemplate">
+            <tiledExplorer:FolderButton />
+        </DataTemplate>
+        <DataTemplate x:Key="ListFileDataTemplate">
+            <listExplorer:FileRow />
+        </DataTemplate>
+        <DataTemplate x:Key="ListFolderDataTemplate">
+            <listExplorer:FolderRow />
+        </DataTemplate>
+
+        <controls:TypeDataTemplateSelector x:Key="TiledExplorerTemplateSelector"
+                                           FolderTemplateKey="TiledFolderDataTemplate"
+                                           FileTemplateKey="TiledFileDataTemplate" />
+        <controls:TypeDataTemplateSelector x:Key="ListExplorerTemplateSelector"
+                                           FolderTemplateKey="ListFolderDataTemplate"
+                                           FileTemplateKey="ListFileDataTemplate" />
+
+        <DataTemplate x:Key="TextureNumTemplate">
+            <Border VerticalAlignment="Top" HorizontalAlignment="Right" Margin="4" Padding="6,2" CornerRadius="3" Opacity="0.85"
+                    Background="{DynamicResource Layer3BackgroundBrush}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding}" Foreground="White" FontSize="11" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,5,0" />
+                    <Path Data="{StaticResource TextureIcon}" Fill="White" Width="12" Height="12" Stretch="Uniform" VerticalAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Styles.Resources>
+
+    <!-- ===================== TiledExplorer ===================== -->
+    <Style Selector="ListBox.TiledExplorer">
+        <Setter Property="tiledExplorer:SmoothScroll.IsEnabled" Value="True" />
+        <Setter Property="tiledExplorer:SmoothScroll.Factor" Value="1.25" />
+        <Setter Property="SelectionMode" Value="Multiple" />
+        <Setter Property="ContextMenu" Value="{DynamicResource FileContextMenu}" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="ItemTemplate" Value="{DynamicResource TiledExplorerTemplateSelector}" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <explorer:VirtualizingWrapPanel />
+            </ItemsPanelTemplate>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}">
+                    <ScrollViewer Name="PART_ScrollViewer" Focusable="False"
+                                  VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}"
+                                  HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}">
+                        <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                    </ScrollViewer>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.TiledExplorer > ListBoxItem">
+        <Setter Property="Margin" Value="5" />
+        <Setter Property="Padding" Value="5" />
+        <Setter Property="BorderThickness" Value="1.5" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="controls:ListBoxItemBehavior.IsBroughtIntoViewWhenSelected" Value="True" />
+        <Setter Property="Background" Value="{DynamicResource Layer0BackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid>
+                    <Border Name="Border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius}">
+                        <ContentPresenter Name="PART_ContentPresenter"
+                                          Content="{TemplateBinding Content}"
+                                          ContentTemplate="{TemplateBinding ContentTemplate}" />
+                    </Border>
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <!-- AdonisUI ListBoxItem triggers (they won over the Background setter in WPF) -->
+    <Style Selector="ListBox.TiledExplorer > ListBoxItem:pointerover:not(:selected)">
+        <Setter Property="Background" Value="{DynamicResource Layer3HighlightBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Layer3HighlightBorderBrush}" />
+    </Style>
+    <Style Selector="ListBox.TiledExplorer > ListBoxItem:selected">
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource AccentForegroundBrush}" />
+    </Style>
+    <Style Selector="ListBox.TiledExplorer:empty">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid>
+                    <TextBlock Text="No folders or packages found" FontWeight="SemiBold" TextAlignment="Center"
+                               Foreground="{DynamicResource ErrorBrush}" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- ===================== ListExplorer ===================== -->
+    <Style Selector="ListBox.ListExplorer">
+        <Setter Property="tiledExplorer:SmoothScroll.IsEnabled" Value="True" />
+        <Setter Property="tiledExplorer:SmoothScroll.Factor" Value="0.1" />
+        <Setter Property="SelectionMode" Value="Multiple" />
+        <Setter Property="ContextMenu" Value="{DynamicResource FileContextMenu}" />
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Visible" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Margin" Value="0 4 0 0" />
+        <Setter Property="ItemTemplate" Value="{DynamicResource ListExplorerTemplateSelector}" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <VirtualizingStackPanel />
+            </ItemsPanelTemplate>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <ScrollViewer Name="PART_ScrollViewer" Focusable="False"
+                              VerticalScrollBarVisibility="{TemplateBinding ScrollViewer.VerticalScrollBarVisibility}"
+                              HorizontalScrollBarVisibility="{TemplateBinding ScrollViewer.HorizontalScrollBarVisibility}">
+                    <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                </ScrollViewer>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.ListExplorer > ListBoxItem">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="controls:ListBoxItemBehavior.IsBroughtIntoViewWhenSelected" Value="True" />
+    </Style>
+
+    <!-- ===================== AssetsListBox (packages tab) ===================== -->
+    <Style Selector="ListBox.AssetsListBox">
+        <Setter Property="ItemsSource" Value="{Binding CUE4Parse.AssetsFolder.SelectedFolder.AssetsList.AssetsView}" />
+        <Setter Property="SelectionMode" Value="Multiple" />
+        <Setter Property="ContextMenu" Value="{DynamicResource FileContextMenu}" />
+        <Setter Property="explorer:AssetExplorerBehavior.ResolveVisibleItems" Value="True" />
+        <Setter Property="ItemTemplate">
+            <DataTemplate>
+                <Grid ColumnDefinitions="Auto,*">
+                    <Image Width="16" Height="16" Margin="0 0 3 0" HorizontalAlignment="Center"
+                           Source="{Binding Asset.Extension, Converter={x:Static explorer:AssetExtensionIconConverter.Instance}}" />
+                    <TextBlock Grid.Column="1" HorizontalAlignment="Left" Text="{Binding Asset.Name}" />
+                </Grid>
+            </DataTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.AssetsListBox > ListBoxItem">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="5 3" />
+        <Setter Property="controls:ListBoxItemBehavior.IsBroughtIntoViewWhenSelected" Value="True" />
+    </Style>
+    <Style Selector="ListBox.AssetsListBox:empty">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid>
+                    <TextBlock Text="No packages found in folder" FontWeight="SemiBold" TextAlignment="Center"
+                               Foreground="{DynamicResource ErrorBrush}" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+</Styles>

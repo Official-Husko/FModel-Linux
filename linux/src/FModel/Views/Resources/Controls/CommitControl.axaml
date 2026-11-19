@@ -1,0 +1,92 @@
+<UserControl x:Class="FModel.Views.Resources.Controls.CommitControl"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:converters="using:FModel.Views.Resources.Converters"
+             xmlns:controls="using:FModel.Views.Resources.Controls">
+    <Border BorderThickness="1" CornerRadius="0.5"
+            BorderBrush="{DynamicResource Layer4BackgroundBrush}">
+        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Grid Grid.Column="0" Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="5" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0" Text="{Binding Commit.Message, Converter={x:Static converters:CommitMessageConverter.Instance}, ConverterParameter=Title}" FontWeight="Bold" TextWrapping="Wrap" />
+                <TextBlock Grid.Row="1" Text="{Binding Commit.Message, Converter={x:Static converters:CommitMessageConverter.Instance}, ConverterParameter=Description}" TextWrapping="Wrap"
+                           IsVisible="{Binding $self.Text, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+
+                <Grid Grid.Row="3">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="5"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <ItemsControl Grid.Column="0" ItemsSource="{Binding Authors}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Ellipse Width="16" Height="16" Margin="0,0,2,0"
+                                         controls:RemoteImage.FillSource="{Binding AvatarUrl}" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                    <TextBlock Grid.Column="2" FontSize="11" VerticalAlignment="Center">
+                        <TextBlock.Text>
+                            <MultiBinding StringFormat="{}{0} committed {1}">
+                                <Binding Path="AuthorNames" />
+                                <Binding Path="Commit.Author.Date" Converter="{x:Static converters:RelativeDateTimeConverter.Instance}" />
+                            </MultiBinding>
+                        </TextBlock.Text>
+                    </TextBlock>
+                </Grid>
+            </Grid>
+
+            <Grid Grid.Column="1" MaxHeight="96">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="15" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <!-- "Latest" badge (hidden when the commit is also the current one) -->
+                <Border Grid.Column="0"
+                        BorderThickness="1" CornerRadius="2.5" Padding="5,2"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        BorderBrush="#3fb950" Background="#0f3fb950">
+                    <Border.IsVisible>
+                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                            <Binding Path="Asset.IsLatest" FallbackValue="False" />
+                            <Binding Path="!IsCurrent" FallbackValue="False" />
+                        </MultiBinding>
+                    </Border.IsVisible>
+                    <TextBlock FontSize="9" Foreground="#3fb950" Text="Latest" />
+                </Border>
+                <!-- "Current" badge -->
+                <Border Grid.Column="0"
+                        BorderThickness="1" CornerRadius="2.5" Padding="5,2"
+                        HorizontalAlignment="Center" VerticalAlignment="Center"
+                        BorderBrush="#3f92b9" Background="#0f3f92b9"
+                        IsVisible="{Binding IsCurrent}">
+                    <TextBlock FontSize="9" Foreground="#3f92b9" Text="Current" />
+                </Border>
+
+                <controls:CommitDownloaderControl Grid.Column="2" Commit="{Binding}" IsVisible="{Binding IsDownloadable}" />
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

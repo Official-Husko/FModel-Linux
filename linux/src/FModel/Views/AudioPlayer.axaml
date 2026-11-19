@@ -1,0 +1,125 @@
+<FWindow x:Class="FModel.Views.AudioPlayer"
+         xmlns="https://github.com/avaloniaui"
+         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         xmlns:settings="using:FModel.Settings"
+         xmlns:audioControls="using:FModel.Views.Resources.Controls.Aup"
+         xmlns:converters="using:FModel.Views.Resources.Converters"
+         WindowStartupLocation="CenterScreen"
+         Title="Audio Player">
+    <Grid ColumnDefinitions="350,*">
+        <GroupBox Grid.Column="0" Padding="0" Background="Transparent">
+            <DockPanel Margin="10">
+                <Grid DockPanel.Dock="Top" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,10,*">
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Devices" VerticalAlignment="Center" Margin="0 0 0 10" />
+                    <ComboBox Grid.Row="0" Grid.Column="2" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="0 0 0 10"
+                              ItemsSource="{Binding AudioPlayer.AudioDevicesView}"
+                              SelectedItem="{Binding AudioPlayer.SelectedAudioDevice, Mode=TwoWay}" SelectionChanged="OnDeviceSwap">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding FriendlyName}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Volume" VerticalAlignment="Center" Margin="0 0 0 10" />
+                    <Slider Grid.Row="1" Grid.Column="2" TickPlacement="None" Minimum="0" Maximum="100" TickFrequency="1"
+                            VerticalAlignment="Center" Margin="0 0 0 10" ValueChanged="OnVolumeChange"
+                            ToolTip.Tip="{Binding $self.Value, StringFormat={}{0:0}}"
+                            Value="{Binding AudioPlayerVolume, Source={x:Static settings:UserSettings.Default}, Mode=TwoWay}" />
+
+                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Encoding" VerticalAlignment="Center" Margin="0 0 0 10" />
+                    <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding AudioPlayer.PlayedFile.Encoding, Converter={x:Static converters:EnumToStringConverter.Instance}}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0 0 0 10" />
+
+                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Length" VerticalAlignment="Center" Margin="0 0 0 10" />
+                    <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding AudioPlayer.PlayedFile.Duration, StringFormat={}{0}}" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0 0 0 10" />
+
+                    <TextBlock Grid.Row="4" Grid.Column="0" Text="Bytes Per Second" VerticalAlignment="Center" />
+                    <TextBlock Grid.Row="4" Grid.Column="2" Text="{Binding AudioPlayer.PlayedFile.BytesPerSecond, StringFormat={}{0}}" VerticalAlignment="Center" HorizontalAlignment="Right" />
+                </Grid>
+                <Separator DockPanel.Dock="Top" Tag="PLAYLIST" Classes="CustomSeparator" />
+                <Grid DockPanel.Dock="Top" Height="24" Margin="0 0 0 5" ColumnDefinitions="*,Auto">
+                    <Grid Grid.Column="0" ZIndex="1" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="5 2 0 0" IsHitTestVisible="False">
+                        <Viewbox Width="16" Height="16">
+                            <Canvas Width="24" Height="24">
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SearchIcon}" />
+                            </Canvas>
+                        </Viewbox>
+                    </Grid>
+                    <TextBox Grid.Column="0" Grid.ColumnSpan="2" AcceptsTab="False" AcceptsReturn="False"
+                             Padding="25 0 0 0" HorizontalAlignment="Stretch" VerticalContentAlignment="Center"
+                             TextChanged="OnFilterTextChanged" Watermark="Search by name..." />
+                </Grid>
+                <ListBox x:Name="AudioFilesListBox" DockPanel.Dock="Top" Classes="AudioFilesListBox" SelectedItem="{Binding AudioPlayer.SelectedAudioFile, Mode=TwoWay}">
+                    <ListBox.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Play" Command="{Binding AudioPlayer.AudioCommand}" CommandParameter="ForcePlayPause">
+                                <MenuItem.Icon>
+                                    <Viewbox Width="16" Height="16">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource PlayIcon}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Remove" Command="{Binding AudioPlayer.AudioCommand}" CommandParameter="Remove">
+                                <MenuItem.Icon>
+                                    <Viewbox Width="16" Height="16">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource RemoveIcon}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Save" Command="{Binding AudioPlayer.AudioCommand}" CommandParameter="Save">
+                                <MenuItem.Icon>
+                                    <Viewbox Width="16" Height="16">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SaveIcon}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Save Playlist" Command="{Binding AudioPlayer.AudioCommand}" CommandParameter="Save_Playlist">
+                                <MenuItem.Icon>
+                                    <Viewbox Width="16" Height="16">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SavePlaylistIcon}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </ContextMenu>
+                    </ListBox.ContextMenu>
+                </ListBox>
+            </DockPanel>
+        </GroupBox>
+
+        <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto">
+            <audioControls:Timeclock Grid.Row="0" />
+            <StackPanel Grid.Row="1" Margin="0 0 25 0"
+                        HorizontalAlignment="Right" VerticalAlignment="Top" Orientation="Horizontal">
+                <Button Classes="ToolbarButton" ToolTip.Tip="Previous"
+                        Command="{Binding AudioPlayer.AudioCommand}" CommandParameter="Previous">
+                    <Viewbox Width="16" Height="16">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="#DAE5F2" Data="{StaticResource SkipPreviousIcon}" />
+                        </Canvas>
+                    </Viewbox>
+                </Button>
+                <Button Classes="PlayPauseToolbarButton"
+                        Classes.playing="{Binding AudioPlayer.PlayedFile.PlaybackState, Converter={x:Static EnumMatchConverter.Instance}, ConverterParameter=Playing}"
+                        Command="{Binding AudioPlayer.AudioCommand}" CommandParameter="PlayPause" />
+                <Button Classes="ToolbarButton" ToolTip.Tip="Next"
+                        Command="{Binding AudioPlayer.AudioCommand}" CommandParameter="Next">
+                    <Viewbox Width="16" Height="16">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="#DAE5F2" Data="{StaticResource SkipNextIcon}" />
+                        </Canvas>
+                    </Viewbox>
+                </Button>
+            </StackPanel>
+            <audioControls:SpectrumAnalyzer Grid.Row="0" Grid.RowSpan="2" />
+            <audioControls:Timeline Grid.Row="2" />
+        </Grid>
+    </Grid>
+</FWindow>

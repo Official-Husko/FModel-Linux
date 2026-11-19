@@ -1,0 +1,229 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Native Linux build of FModel.
+
+    This project does not carry its own copy of FModel. It compiles the upstream sources in ../FModel
+    as they are and layers the Linux specific pieces on top:
+
+      linux/src/compat   stand-ins for the WPF / AdonisUI / Ookii APIs that the shared view models use,
+                         implemented on top of Avalonia, so upstream code compiles without edits
+      linux/src/FModel   Avalonia replacements, mirroring the ../FModel folder layout. A file placed at
+                         linux/src/FModel/<path>.cs automatically replaces ../FModel/<path>.cs
+
+    Everything WPF specific in upstream (*.xaml, *.xaml.cs, the WPF-only controls listed below) is left
+    out of this build. linux/scripts/drift.sh reports when upstream changes one of those so the Avalonia
+    side can be brought up to date.
+  -->
+
+  <PropertyGroup>
+    <UpstreamDir>$(MSBuildThisFileDirectory)..\FModel\</UpstreamDir>
+    <OverlayDir>$(MSBuildThisFileDirectory)src\FModel\</OverlayDir>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <AssemblyName>FModel</AssemblyName>
+    <RootNamespace>FModel</RootNamespace>
+    <ApplicationIcon>$(UpstreamDir)FModel.ico</ApplicationIcon>
+    <IsPackable>false</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <RuntimeIdentifiers>linux-x64;linux-arm64</RuntimeIdentifiers>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <StartupObject>FModel.Program</StartupObject>
+    <AvaloniaUseCompiledBindingsByDefault>false</AvaloniaUseCompiledBindingsByDefault>
+    <BuiltInComInteropSupport>false</BuiltInComInteropSupport>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems>
+    <DefineConstants>$(DefineConstants);LINUX</DefineConstants>
+    <NoWarn>$(NoWarn);CS0436;1701;1702;NU1701;NU1902;NU1903;CS0108;CS0114;CS0162;CS0168;CS0169;CS0219;CS0414;CS0612;CS0618;CS0649;CS1998;CS4014;CS8618;CA1416</NoWarn>
+    <Nullable>disable</Nullable>
+  </PropertyGroup>
+
+  <!--
+    Version stamping.
+
+    The version number is read from upstream's FModel.csproj so it can never drift. The informational
+    version carries the commit of the official repository this build corresponds to ("+<sha>"), which is
+    what FModel compares against the official update feed and shows in its log header. That commit is
+    taken from -p:UpstreamCommit=... when given (CI), else from `git merge-base HEAD upstream/dev`, else
+    HEAD itself.
+  -->
+  <PropertyGroup>
+    <LinuxRepository Condition="'$(LinuxRepository)' == ''">Official-Husko/FModel-Linux</LinuxRepository>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <Target Name="ResolveUpstreamCommit" Condition="'$(UpstreamCommit)' == ''">
+    <Exec Command="git merge-base HEAD upstream/dev || git rev-parse HEAD" WorkingDirectory="$(MSBuildThisFileDirectory).."
+          ConsoleToMSBuild="true" IgnoreExitCode="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitCommitOutput" />
+    </Exec>
+    <PropertyGroup>
+      <UpstreamCommit>$([System.Text.RegularExpressions.Regex]::Match('$(_GitCommitOutput)', '[0-9a-f]{40}').Value)</UpstreamCommit>
+      <!-- FModel slices the commit id, so it must never be empty (e.g. building from a source tarball) -->
+      <UpstreamCommit Condition="'$(UpstreamCommit)' == ''">0000000000000000000000000000000000000000</UpstreamCommit>
+    </PropertyGroup>
+  </Target>
+
+  <Target Name="StampLinuxVersion" DependsOnTargets="ResolveUpstreamCommit" BeforeTargets="GetAssemblyVersion;GenerateAssemblyInfo;GetFileVersion">
+    <XmlPeek XmlInputPath="$(UpstreamDir)FModel.csproj" Query="/Project/PropertyGroup/Version/text()">
+      <Output TaskParameter="Result" PropertyName="Version" />
+    </XmlPeek>
+    <PropertyGroup>
+      <AssemblyVersion>$(Version)</AssemblyVersion>
+      <FileVersion>$(Version)</FileVersion>
+      <InformationalVersion>$(Version)-linux+$(UpstreamCommit)</InformationalVersion>
+    </PropertyGroup>
+    <ItemGroup>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>UpstreamCommit</_Parameter1>
+        <_Parameter2>$(UpstreamCommit)</_Parameter2>
+      </AssemblyAttribute>
+      <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+        <_Parameter1>LinuxRepository</_Parameter1>
+        <_Parameter2>$(LinuxRepository)</_Parameter2>
+      </AssemblyAttribute>
+    </ItemGroup>
+  </Target>
+
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <!-- Upstream sources -->
+  <ItemGroup>
+    <Compile Include="$(UpstreamDir)**\*.cs" Exclude="$(UpstreamDir)bin\**;$(UpstreamDir)obj\**">
+      <Link>FModel\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Compile>
+
+    <!-- WPF code-behind; the Avalonia versions live next to their .axaml in linux/src -->
+    <Compile Remove="$(UpstreamDir)**\*.xaml.cs" />
+
+    <!-- ...except App.xaml.cs: startup, logging and crash handling are plain .NET and compile as is on top
+         of the System.Windows.Application stand-in. The Avalonia half of App lives in src/FModel/App.axaml.cs -->
+    <Compile Include="$(UpstreamDir)App.xaml.cs" Link="FModel\App.xaml.cs" />
+
+    <!-- Windows only: WPF theme metadata and the generated resx accessor for WPF -->
+    <Compile Remove="$(UpstreamDir)AssemblyInfo.cs" />
+    <Compile Remove="$(UpstreamDir)Properties\Resources.Designer.cs" />
+  </ItemGroup>
+
+  <!-- Any file under linux/src/FModel replaces the upstream file with the same relative path. -->
+  <ItemGroup>
+    <_OverlaySource Include="$(OverlayDir)**\*.cs" />
+    <Compile Remove="@(_OverlaySource->'$(UpstreamDir)%(RecursiveDir)%(Filename)%(Extension)')" />
+    <Compile Include="src\**\*.cs" Exclude="src\**\bin\**;src\**\obj\**" />
+
+    <!-- Publish the Avalonia views at the same avares:// paths the upstream layout implies -->
+    <AvaloniaXaml Remove="**\*.axaml" />
+    <AvaloniaXaml Include="src\FModel\**\*.axaml" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <!--
+    Icons.xaml and Colors.xaml are pure data (path geometries and brushes). Their Avalonia versions are
+    generated from upstream on every build, so new icons and colors arrive with a sync, no porting needed.
+  -->
+  <UsingTask TaskName="ConvertWpfResourceDictionary" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <Destination ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var xaml = File.ReadAllText(Source).Replace("http://schemas.microsoft.com/winfx/2006/xaml/presentation", "https://github.com/avaloniaui");
+        xaml = Regex.Replace(xaml, @"<(/?)Geometry\b", "<$1StreamGeometry");
+        xaml = Regex.Replace(xaml, "Color=\"\\s*([^\"]*?)\\s*\"", "Color=\"$1\"");
+        Directory.CreateDirectory(Path.GetDirectoryName(Destination));
+        File.WriteAllText(Destination, "<!-- Generated from FModel/Views/Resources/" + Path.GetFileName(Source) + " at build time. Edit the upstream file instead. -->\n" + xaml.TrimStart('\uFEFF'));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <ItemGroup>
+    <_GeneratedResourceDictionary Include="$(UpstreamDir)Views\Resources\Icons.xaml;$(UpstreamDir)Views\Resources\Colors.xaml" />
+  </ItemGroup>
+
+  <Target Name="GenerateLinuxResourceDictionaries" BeforeTargets="BeforeBuild"
+          Inputs="@(_GeneratedResourceDictionary)" Outputs="@(_GeneratedResourceDictionary->'$(IntermediateOutputPath)generated\%(Filename).axaml')">
+    <ConvertWpfResourceDictionary Source="%(_GeneratedResourceDictionary.FullPath)" Destination="$(IntermediateOutputPath)generated\%(_GeneratedResourceDictionary.Filename).axaml" />
+  </Target>
+
+  <Target Name="IncludeLinuxResourceDictionaries" AfterTargets="GenerateLinuxResourceDictionaries" BeforeTargets="BeforeBuild">
+    <ItemGroup>
+      <AvaloniaXaml Include="@(_GeneratedResourceDictionary->'$(IntermediateOutputPath)generated\%(Filename).axaml')" Link="Views\Resources\%(Filename).axaml" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Upstream files with no Linux counterpart. Keep this list short and explain every entry. -->
+  <ItemGroup>
+    <Compile Remove="$(UpstreamDir)Views\Resources\Controls\Aup\CustomCodecFactory.cs" /> <!-- CSCore codec registry, replaced by Framework/Audio -->
+    <Compile Remove="$(UpstreamDir)Views\Resources\Controls\Aup\NVorbisSource.cs" />     <!-- CSCore ISampleSource adapter -->
+    <Compile Remove="$(UpstreamDir)Views\Resources\Converters\StatusToTaskbarStateConverter.cs" /> <!-- Windows taskbar progress, no Linux equivalent -->
+  </ItemGroup>
+
+  <!-- Resources -->
+  <ItemGroup>
+    <AvaloniaResource Include="$(UpstreamDir)Resources\*.png;$(UpstreamDir)Resources\*.ico;$(UpstreamDir)Resources\*.ttf;$(UpstreamDir)Resources\*.otf">
+      <Link>Resources\%(Filename)%(Extension)</Link>
+    </AvaloniaResource>
+    <AvaloniaResource Include="$(UpstreamDir)FModel.ico" Link="FModel.ico" />
+
+    <EmbeddedResource Include="$(UpstreamDir)Resources\*.xshd;$(UpstreamDir)Resources\*.otf">
+      <Link>Resources\%(Filename)%(Extension)</Link>
+      <LogicalName>FModel.Resources.%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <!-- Dependencies -->
+  <ItemGroup>
+    <!-- Linux replacements for WPF, AdonisUI, AvalonEdit, Ookii, CSCore -->
+    <PackageReference Include="Avalonia" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Themes.Simple" Version="11.3.22" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.13" />
+    <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.4.1" />
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.22" Condition="'$(Configuration)' == 'Debug'" />
+    <PackageReference Include="NLayer" Version="1.16.0" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux" Version="[2.88.9]" />
+
+    <!-- Same as upstream (keep versions in sync, linux/scripts/drift.sh checks this) -->
+    <PackageReference Include="DiscordRichPresence" Version="1.6.1.70" />
+    <PackageReference Include="EpicManifestParser" Version="3.0.0-preview.1" />
+    <PackageReference Include="K4os.Compression.LZ4.Streams" Version="1.3.8" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="NVorbis" Version="0.10.5" />
+    <PackageReference Include="RestSharp" Version="114.0.0" />
+    <PackageReference Include="Serilog" Version="4.3.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="SkiaSharp.HarfBuzz" Version="[2.88.9]" />
+    <PackageReference Include="Svg.Skia" Version="[4.8.0]" />
+  </ItemGroup>
+
+  <!-- Native helper answering FModel's and Snooper's Win32 P/Invokes on Linux (see native/win32compat.c) -->
+  <PropertyGroup>
+    <Win32CompatLibrary>$(BaseIntermediateOutputPath)native/libwin32compat.so</Win32CompatLibrary>
+  </PropertyGroup>
+
+  <Target Name="BuildWin32Compat" BeforeTargets="AssignTargetPaths" Inputs="native\win32compat.c" Outputs="$(Win32CompatLibrary)">
+    <MakeDir Directories="$(BaseIntermediateOutputPath)native" />
+    <Exec Command="cc -std=c11 -O2 -fPIC -shared -fvisibility=hidden -Wall -o &quot;$(Win32CompatLibrary)&quot; native/win32compat.c -ldl" />
+  </Target>
+
+  <Target Name="CollectWin32Compat" BeforeTargets="AssignTargetPaths" DependsOnTargets="BuildWin32Compat">
+    <ItemGroup>
+      <Content Include="$(Win32CompatLibrary)" Link="libwin32compat.so" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CUE4Parse\CUE4Parse-Conversion\CUE4Parse-Conversion.csproj" />
+    <ProjectReference Include="..\CUE4Parse\CUE4Parse\CUE4Parse.csproj" />
+    <ProjectReference Include="..\Snooper\Editor\Editor.csproj" />
+  </ItemGroup>
+
+</Project>

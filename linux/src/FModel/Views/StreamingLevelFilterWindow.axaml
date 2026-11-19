@@ -1,0 +1,184 @@
+<FWindow x:Class="FModel.Views.StreamingLevelFilterWindow"
+         xmlns="https://github.com/avaloniaui"
+         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         xmlns:vm="using:FModel.ViewModels"
+         Title="Streamed Levels"
+         WindowStartupLocation="CenterScreen" CanResize="False">
+    <FWindow.Styles>
+        <!-- WPF LevelTreeViewItemStyle -->
+        <Style Selector="TreeView#LevelTree TreeViewItem">
+            <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid RowDefinitions="Auto,*">
+                        <Border Name="PART_LayoutRoot" Grid.Row="0"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="{TemplateBinding CornerRadius}">
+                            <Grid ColumnDefinitions="Auto,*">
+                                <ToggleButton Name="PART_ExpandCollapseChevron" Grid.Column="0"
+                                              Width="16" Height="16" Margin="8,0,8,0"
+                                              Focusable="False" ClickMode="Press"
+                                              Foreground="{TemplateBinding Foreground}"
+                                              IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}"
+                                              RenderTransformOrigin="50%,50%">
+                                    <ToggleButton.Template>
+                                        <ControlTemplate>
+                                            <Viewbox Width="16" Height="16" HorizontalAlignment="Center">
+                                                <Canvas Width="24" Height="24" Background="Transparent">
+                                                    <Path Fill="{TemplateBinding Foreground}" Data="{StaticResource ArrowIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </ControlTemplate>
+                                    </ToggleButton.Template>
+                                </ToggleButton>
+                                <ContentPresenter Name="PART_HeaderPresenter" Grid.Column="1"
+                                                  Content="{TemplateBinding Header}"
+                                                  ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                                  HorizontalAlignment="Stretch"
+                                                  HorizontalContentAlignment="Stretch"
+                                                  Margin="0,4,8,4" />
+                            </Grid>
+                        </Border>
+                        <ItemsPresenter Name="PART_ItemsPresenter" Grid.Row="1" Margin="32,0,0,0"
+                                        ItemsPanel="{TemplateBinding ItemsPanel}"
+                                        IsVisible="{TemplateBinding IsExpanded}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+        <Style Selector="TreeView#LevelTree TreeViewItem /template/ ToggleButton#PART_ExpandCollapseChevron">
+            <Setter Property="RenderTransform" Value="rotate(-90deg)" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="TreeView#LevelTree TreeViewItem:expanded /template/ ToggleButton#PART_ExpandCollapseChevron">
+            <Setter Property="RenderTransform" Value="rotate(0deg)" />
+        </Style>
+        <Style Selector="TreeView#LevelTree TreeViewItem:empty /template/ ToggleButton#PART_ExpandCollapseChevron">
+            <Setter Property="Opacity" Value="0" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+        </Style>
+        <Style Selector="TreeView#LevelTree TreeViewItem /template/ Border#PART_LayoutRoot:pointerover">
+            <Setter Property="Background" Value="{DynamicResource Layer2HighlightBrush}" />
+        </Style>
+        <Style Selector="TreeView#LevelTree TreeViewItem:selected /template/ Border#PART_LayoutRoot">
+            <Setter Property="Background" Value="{DynamicResource Layer2IntenseHighlightBrush}" />
+        </Style>
+    </FWindow.Styles>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="10 10 10 0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <DockPanel Grid.Row="0">
+                <Grid DockPanel.Dock="Left" VerticalAlignment="Center" HorizontalAlignment="Left">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Grid.Column="0"
+                               Text="{Binding TotalCount, Mode=OneWay, FallbackValue=0}"
+                               FontSize="20" FontWeight="SemiBold"
+                               Foreground="{DynamicResource ForegroundBrush}" />
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="streamed levels" FontSize="10"
+                               Foreground="{DynamicResource DisabledForegroundBrush}" />
+
+                    <Rectangle Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" Width="1" Margin="16 2"
+                               Fill="{DynamicResource DisabledForegroundBrush}" />
+
+                    <TextBlock Grid.Row="0" Grid.RowSpan="2" Grid.Column="2" TextWrapping="Wrap" FontSize="10" VerticalAlignment="Center"
+                               Foreground="{DynamicResource DisabledForegroundBrush}">
+                        <Run Text="{Binding WorldName, Mode=OneWay, StringFormat='{}{0} loads these levels at runtime, select which ones to export.'}"
+                             Foreground="{DynamicResource ForegroundBrush}"/>
+                        <LineBreak />
+                        <Run Text="Unchecked levels will be referenced but not exported." />
+                        <LineBreak />
+                        <Run Text="Skip to ignore all of them." />
+                    </TextBlock>
+                </Grid>
+            </DockPanel>
+
+            <Separator Grid.Row="1" Classes="CustomSeparator" Margin="0 5" />
+
+            <TreeView x:Name="LevelTree" Grid.Row="2" ItemsSource="{Binding Children}">
+                <TreeView.DataTemplates>
+                    <TreeDataTemplate DataType="vm:ActorNodeVm" ItemsSource="{Binding Children}">
+                        <Grid VerticalAlignment="Center">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <CheckBox Grid.Column="0" IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                      IsThreeState="True"
+                                      VerticalAlignment="Center" Margin="0 0 5 0" />
+                            <TextBlock Grid.Column="1" Text="{Binding Name}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Margin="5 0 0 0" VerticalAlignment="Center"
+                                       Foreground="{DynamicResource DisabledForegroundBrush}"
+                                       Text="{Binding Children.Count, Mode=OneWay, StringFormat='({0})'}" />
+                        </Grid>
+                    </TreeDataTemplate>
+
+                    <DataTemplate DataType="vm:StreamingLevelNodeVm">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <CheckBox IsChecked="{Binding IsChecked, Mode=TwoWay}"
+                                      VerticalAlignment="Center" Margin="0 0 5 0" />
+                            <TextBlock Text="{Binding Name}" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </DataTemplate>
+                </TreeView.DataTemplates>
+            </TreeView>
+        </Grid>
+
+        <Border Grid.Row="1"
+                Background="{DynamicResource Layer1BackgroundBrush}"
+                LayerExtension.IncreaseLayer="True">
+            <Grid Margin="30, 12, 6, 12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="1" MinWidth="78" Margin="0 0 12 0" IsDefault="False" IsCancel="True"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" HorizontalContentAlignment="Center"
+                        Content="Skip" Click="OnSkipClick"
+                        Classes="AccentButton">
+                    <Button.Resources>
+                        <SolidColorBrush x:Key="AccentBrush" Color="#D49220" />
+                        <SolidColorBrush x:Key="AccentHighlightBrush" Color="#E0A030" />
+                        <SolidColorBrush x:Key="AccentIntenseHighlightBrush" Color="#E0A030" />
+                        <SolidColorBrush x:Key="AccentInteractionBrush" Color="#B87C10" />
+                        <SolidColorBrush x:Key="AccentInteractionBorderBrush" Color="#9A6800" />
+                    </Button.Resources>
+                </Button>
+
+                <Button Grid.Column="2" MinWidth="78" Margin="0 0 12 0" IsDefault="False" IsCancel="False"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" HorizontalContentAlignment="Center"
+                        Content="OK"
+                        Click="OnOkClick" />
+            </Grid>
+        </Border>
+    </Grid>
+</FWindow>

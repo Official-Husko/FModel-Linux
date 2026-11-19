@@ -1,0 +1,384 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:settings="using:FModel.Settings"
+                    xmlns:controls="using:FModel.Views.Resources.Controls"
+                    xmlns:menus="using:FModel.Views.Resources.Controls.ContextMenus"
+                    xmlns:converters="using:FModel.Views.Resources.Converters">
+    <!-- Shared instance (attached to many controls). Its DataContext is a SelectionMenuContext created on every opening,
+         see ContextMenuBehavior. -->
+    <ContextMenu x:Key="FileContextMenu" menus:ContextMenuBehavior.ProvidesSelection="True">
+        <MenuItem Header="Extract in New Tab" Command="{Binding App.RightClickMenuCommand}">
+            <MenuItem.CommandParameter>
+                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                    <Binding Source="Assets_Extract_New_Tab" />
+                    <Binding Path="SelectedItems" />
+                </MultiBinding>
+            </MenuItem.CommandParameter>
+            <MenuItem.Icon>
+                <Viewbox Width="16" Height="16">
+                    <Canvas Width="24" Height="24">
+                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource ExtractIcon}" />
+                    </Canvas>
+                </Viewbox>
+            </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Show Metadata" Command="{Binding App.RightClickMenuCommand}">
+            <MenuItem.CommandParameter>
+                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                    <Binding Source="Assets_Show_Metadata" />
+                    <Binding Path="SelectedItems" />
+                </MultiBinding>
+            </MenuItem.CommandParameter>
+            <MenuItem.IsEnabled>
+                <Binding Path="SelectedItems">
+                    <Binding.Converter>
+                        <converters:AnyItemMeetsConditionConverter>
+                            <converters:AnyItemMeetsConditionConverter.Conditions>
+                                <converters:ItemIsUePackageCondition />
+                            </converters:AnyItemMeetsConditionConverter.Conditions>
+                        </converters:AnyItemMeetsConditionConverter>
+                    </Binding.Converter>
+                </Binding>
+            </MenuItem.IsEnabled>
+            <MenuItem.Icon>
+                <Viewbox Width="16" Height="16">
+                    <Canvas Width="24" Height="24">
+                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource InfoIcon}" />
+                    </Canvas>
+                </Viewbox>
+            </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Find References" Command="{Binding App.RightClickMenuCommand}">
+            <MenuItem.CommandParameter>
+                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                    <Binding Source="Assets_Show_References" />
+                    <Binding Path="SelectedItems" />
+                </MultiBinding>
+            </MenuItem.CommandParameter>
+            <MenuItem.IsEnabled>
+                <Binding Path="SelectedItems">
+                    <Binding.Converter>
+                        <converters:AnyItemMeetsConditionConverter>
+                            <converters:AnyItemMeetsConditionConverter.Conditions>
+                                <converters:ItemIsUePackageCondition />
+                                <converters:ItemIsIoStoreCondition />
+                            </converters:AnyItemMeetsConditionConverter.Conditions>
+                        </converters:AnyItemMeetsConditionConverter>
+                    </Binding.Converter>
+                </Binding>
+            </MenuItem.IsEnabled>
+            <MenuItem.Icon>
+                <Viewbox Width="16" Height="16">
+                    <Canvas Width="24" Height="24">
+                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SearchIcon}" />
+                    </Canvas>
+                </Viewbox>
+            </MenuItem.Icon>
+        </MenuItem>
+        <MenuItem Header="Decompile Blueprint"
+                  IsVisible="{Binding ShowDecompileOption, Source={x:Static settings:UserSettings.Default}}"
+                  Command="{Binding App.RightClickMenuCommand}">
+            <MenuItem.CommandParameter>
+                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                    <Binding Source="Assets_Decompile" />
+                    <Binding Path="SelectedItems" />
+                </MultiBinding>
+            </MenuItem.CommandParameter>
+            <MenuItem.IsEnabled>
+                <Binding Path="SelectedItems">
+                    <Binding.Converter>
+                        <converters:AnyItemMeetsConditionConverter>
+                            <converters:AnyItemMeetsConditionConverter.Conditions>
+                                <converters:ItemActionCondition Action="Code" />
+                            </converters:AnyItemMeetsConditionConverter.Conditions>
+                        </converters:AnyItemMeetsConditionConverter>
+                    </Binding.Converter>
+                </Binding>
+            </MenuItem.IsEnabled>
+            <MenuItem.Icon>
+                <Viewbox Width="16" Height="16">
+                    <Canvas Width="24" Height="24">
+                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource CppIcon}" />
+                    </Canvas>
+                </Viewbox>
+            </MenuItem.Icon>
+        </MenuItem>
+        <Separator />
+        <MenuItem Header="Export">
+            <MenuItem.Icon>
+                <Viewbox Width="16"
+                         Height="16">
+                    <Canvas Width="24"
+                            Height="24">
+                        <Path Fill="{DynamicResource ForegroundBrush}" Data="M12 2l.117 .007a1 1 0 0 1 .876 .876l.007 .117v4l.005 .15a2 2 0 0 0 1.838 1.844l.157 .006h4l.117 .007a1 1 0 0 1 .876 .876l.007 .117v9a3 3 0 0 1 -2.824 2.995l-.176 .005h-10a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-14a3 3 0 0 1 2.824 -2.995l.176 -.005zm1 10l-5 5v2h2l5 -5a1.414 1.414 0 0 0 -2 -2" />
+                        <Path Fill="{DynamicResource ForegroundBrush}" Data="M19 7h-4l-.001 -4.001z" />
+                    </Canvas>
+                </Viewbox>
+            </MenuItem.Icon>
+
+            <MenuItem Command="{Binding App.RightClickMenuCommand}"
+                      controls:MenuItemGesture.Text="{Binding ExportData, Source={x:Static settings:UserSettings.Default}}">
+                <MenuItem.Header>
+                    <TextBlock Text="{Binding SelectedItem.Asset.Extension, FallbackValue='Raw Data', StringFormat='Raw Data (.{0})'}" />
+                </MenuItem.Header>
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="Save_Data" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+                <MenuItem.Icon>
+                    <Viewbox Width="16" Height="16">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource ExportIcon}" />
+                        </Canvas>
+                    </Viewbox>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem ToolTip.Tip="Export files embedded in the selected assets"
+                      Command="{Binding App.RightClickMenuCommand}"
+                      controls:MenuItemGesture.Text="{Binding ExportEmbeddedFiles, Source={x:Static settings:UserSettings.Default}}">
+                <MenuItem.Header>
+                    <TextBlock Text="{Binding SelectedItem.EmbeddedFileExtensions, FallbackValue='Embedded Files', StringFormat='Embedded Files ({0})'}" />
+                </MenuItem.Header>
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="Save_EmbeddedFiles" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+                <MenuItem.IsVisible>
+                    <Binding Path="SelectedItems">
+                        <Binding.Converter>
+                            <converters:AnyItemMeetsConditionConverter>
+                                <converters:AnyItemMeetsConditionConverter.Conditions>
+                                    <converters:ItemActionCondition Action="EmbeddedFiles" />
+                                </converters:AnyItemMeetsConditionConverter.Conditions>
+                            </converters:AnyItemMeetsConditionConverter>
+                        </Binding.Converter>
+                    </Binding>
+                </MenuItem.IsVisible>
+                <MenuItem.Icon>
+                    <Viewbox Width="16" Height="16">
+                        <Canvas Width="24" Height="24">
+                            <Path Stroke="{DynamicResource ForegroundBrush}"
+                                  StrokeThickness="2" StrokeLineCap="Round" StrokeJoin="Round"
+                                  Data="{StaticResource EmbeddedFilesIcon}" />
+                        </Canvas>
+                    </Viewbox>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Properties (.json)"
+                      Command="{Binding App.RightClickMenuCommand}"
+                      controls:MenuItemGesture.Text="{Binding ExportProperties, Source={x:Static settings:UserSettings.Default}}">
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="Save_Properties" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+                <MenuItem.Icon>
+                    <Viewbox Width="16" Height="16">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SaveIcon}" />
+                        </Canvas>
+                    </Viewbox>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Texture"
+                      Command="{Binding App.RightClickMenuCommand}"
+                      controls:MenuItemGesture.Text="{Binding ExportTextures, Source={x:Static settings:UserSettings.Default}}">
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="Save_Textures" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+                <MenuItem.IsEnabled>
+                    <Binding Path="SelectedItems">
+                        <Binding.Converter>
+                            <converters:AnyItemMeetsConditionConverter>
+                                <converters:AnyItemMeetsConditionConverter.Conditions>
+                                    <converters:ItemActionCondition Action="Textures" />
+                                </converters:AnyItemMeetsConditionConverter.Conditions>
+                            </converters:AnyItemMeetsConditionConverter>
+                        </Binding.Converter>
+                    </Binding>
+                </MenuItem.IsEnabled>
+                <MenuItem.Icon>
+                    <Viewbox Width="16" Height="16">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource TextureIcon}" />
+                        </Canvas>
+                    </Viewbox>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Model"
+                      Command="{Binding App.RightClickMenuCommand}"
+                      controls:MenuItemGesture.Text="{Binding ExportModels, Source={x:Static settings:UserSettings.Default}}">
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="Save_Models" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+                <MenuItem.IsEnabled>
+                    <Binding Path="SelectedItems">
+                        <Binding.Converter>
+                            <converters:AnyItemMeetsConditionConverter>
+                                <converters:AnyItemMeetsConditionConverter.Conditions>
+                                    <converters:ItemActionCondition Action="Meshes" />
+                                </converters:AnyItemMeetsConditionConverter.Conditions>
+                            </converters:AnyItemMeetsConditionConverter>
+                        </Binding.Converter>
+                    </Binding>
+                </MenuItem.IsEnabled>
+                <MenuItem.Icon>
+                    <Viewbox Width="16" Height="16">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource ModelIcon}" />
+                        </Canvas>
+                    </Viewbox>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="World"
+                      Command="{Binding App.RightClickMenuCommand}"
+                      controls:MenuItemGesture.Text="{Binding ExportWorlds, Source={x:Static settings:UserSettings.Default}}">
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="Save_Worlds" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+                <MenuItem.IsEnabled>
+                    <Binding Path="SelectedItems">
+                        <Binding.Converter>
+                            <converters:AnyItemMeetsConditionConverter>
+                                <converters:AnyItemMeetsConditionConverter.Conditions>
+                                    <converters:ItemActionCondition Action="Worlds" />
+                                </converters:AnyItemMeetsConditionConverter.Conditions>
+                            </converters:AnyItemMeetsConditionConverter>
+                        </Binding.Converter>
+                    </Binding>
+                </MenuItem.IsEnabled>
+                <MenuItem.Icon>
+                    <Viewbox Width="16" Height="16">
+                        <Canvas Width="24" Height="24">
+                            <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World1}" />
+                            <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World2}" />
+                            <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World3}" />
+                            <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World4}" />
+                            <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World5}" />
+                        </Canvas>
+                    </Viewbox>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Animation"
+                      Command="{Binding App.RightClickMenuCommand}"
+                      controls:MenuItemGesture.Text="{Binding ExportAnimations, Source={x:Static settings:UserSettings.Default}}">
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="Save_Animations" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+                <MenuItem.IsEnabled>
+                    <Binding Path="SelectedItems">
+                        <Binding.Converter>
+                            <converters:AnyItemMeetsConditionConverter>
+                                <converters:AnyItemMeetsConditionConverter.Conditions>
+                                    <converters:ItemActionCondition Action="Animations" />
+                                </converters:AnyItemMeetsConditionConverter.Conditions>
+                            </converters:AnyItemMeetsConditionConverter>
+                        </Binding.Converter>
+                    </Binding>
+                </MenuItem.IsEnabled>
+                <MenuItem.Icon>
+                    <Viewbox Width="16" Height="16">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource AnimationIcon}" />
+                        </Canvas>
+                    </Viewbox>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Header="Audio"
+                      Command="{Binding App.RightClickMenuCommand}"
+                      controls:MenuItemGesture.Text="{Binding ExportAudio, Source={x:Static settings:UserSettings.Default}}">
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="Save_Audio" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+                <MenuItem.IsEnabled>
+                    <Binding Path="SelectedItems">
+                        <Binding.Converter>
+                            <converters:AnyItemMeetsConditionConverter>
+                                <converters:AnyItemMeetsConditionConverter.Conditions>
+                                    <converters:ItemActionCondition Action="Audio" />
+                                </converters:AnyItemMeetsConditionConverter.Conditions>
+                            </converters:AnyItemMeetsConditionConverter>
+                        </Binding.Converter>
+                    </Binding>
+                </MenuItem.IsEnabled>
+                <MenuItem.Icon>
+                    <Viewbox Width="16" Height="16">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource AudioIcon}" />
+                        </Canvas>
+                    </Viewbox>
+                </MenuItem.Icon>
+            </MenuItem>
+        </MenuItem>
+        <Separator />
+        <MenuItem Header="Copy">
+            <MenuItem.Icon>
+                <Viewbox Width="16" Height="16">
+                    <Canvas Width="24" Height="24">
+                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource CopyIcon}" />
+                    </Canvas>
+                </Viewbox>
+            </MenuItem.Icon>
+            <MenuItem Header="Package Path" Command="{Binding App.CopyCommand}">
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="File_Path" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+            </MenuItem>
+            <MenuItem Header="Package Name" Command="{Binding App.CopyCommand}">
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="File_Name" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+            </MenuItem>
+            <MenuItem Header="Directory Path" Command="{Binding App.CopyCommand}">
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="Directory_Path" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+            </MenuItem>
+            <MenuItem Header="Package Path w/o Extension" Command="{Binding App.CopyCommand}">
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="File_Path_No_Extension" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+            </MenuItem>
+            <MenuItem Header="Package Name w/o Extension" Command="{Binding App.CopyCommand}">
+                <MenuItem.CommandParameter>
+                    <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                        <Binding Source="File_Name_No_Extension" />
+                        <Binding Path="SelectedItems" />
+                    </MultiBinding>
+                </MenuItem.CommandParameter>
+            </MenuItem>
+        </MenuItem>
+    </ContextMenu>
+</ResourceDictionary>

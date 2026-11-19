@@ -1,0 +1,939 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:controls="using:FModel.Views.Resources.Controls"
+        xmlns:ui="using:FModel.Framework.Ui"
+        xmlns:converters="using:FModel.Views.Resources.Converters"
+        xmlns:viewModels="using:FModel.ViewModels"
+        xmlns:settings="using:FModel.Settings">
+    <!-- FModel shared styles. WPF keyed styles are style classes with the same name (Classes="Name"),
+         WPF implicit overrides (MenuItem, Expander, ComboBox, Button, ScrollBar...) are plain type selectors on top of the theme.
+         Audio styles (AudioFilesListBox, PlayPauseToolbarButton...) live in Controls/Aup/AudioStyles.axaml,
+         HotkeyPresenter / TextEditor / CustomRichTextBox / Magnifier / FoldingMargin styles in Controls/ControlStyles.axaml. -->
+    <Styles.Resources>
+        <LinearGradientBrush x:Key="FolderTabGradient" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#FFE8C480" Offset="0" />
+            <GradientStop Color="#FFD9AA63" Offset="1" />
+        </LinearGradientBrush>
+        <LinearGradientBrush x:Key="FolderBodyGradient" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#FFF3D9A4" Offset="0" />
+            <GradientStop Color="#FFE5BD77" Offset="1" />
+        </LinearGradientBrush>
+        <DrawingImage x:Key="TreeFolderClosedImage">
+            <DrawingGroup>
+                <GeometryDrawing Brush="{StaticResource FolderTabGradient}"
+                                 Geometry="M20 34 H54 L62 46 H108 C112 46 115 49 115 53 V60 H13 V45 C13 39 16 34 20 34 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#AC783F" Thickness="5" LineJoin="Round" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="{StaticResource FolderBodyGradient}"
+                                 Geometry="M13 60 H115 V104 C115 110 110 115 104 115 H24 C18 115 13 110 13 104 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#AC783F" Thickness="5" LineJoin="Round" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage>
+        <DrawingImage x:Key="TreeFolderOpenImage">
+            <DrawingGroup>
+                <GeometryDrawing Brush="{StaticResource FolderTabGradient}"
+                                 Geometry="M20 34 H54 L62 46 H103 C108 46 111 49 111 54 V105 H13 V45 C13 39 16 34 20 34 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#AC783F" Thickness="5" LineJoin="Round" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+                <GeometryDrawing Brush="{StaticResource FolderBodyGradient}"
+                                 Geometry="M30 65 H121 L104 108 C102 113 99 115 93 115 H24 C18 115 14 111 13 106 Z">
+                    <GeometryDrawing.Pen>
+                        <Pen Brush="#AC783F" Thickness="5" LineJoin="Round" />
+                    </GeometryDrawing.Pen>
+                </GeometryDrawing>
+            </DrawingGroup>
+        </DrawingImage>
+
+        <DropShadowEffect x:Key="ShadowEffect" Color="Black" BlurRadius="6" OffsetX="0" OffsetY="0" Opacity="0.3" />
+
+        <!-- GameFilesTabControl: the editor spans the image columns when the tab has no image -->
+        <ui:BoolToObjectConverter x:Key="ImageColumnSpanConverter">
+            <ui:BoolToObjectConverter.TrueValue>
+                <x:Int32>1</x:Int32>
+            </ui:BoolToObjectConverter.TrueValue>
+            <ui:BoolToObjectConverter.FalseValue>
+                <x:Int32>3</x:Int32>
+            </ui:BoolToObjectConverter.FalseValue>
+        </ui:BoolToObjectConverter>
+    </Styles.Resources>
+
+    <!-- ===================== TabItemFillSpace ===================== -->
+    <Style Selector="TabItem.TabItemFillSpace">
+        <Setter Property="Width">
+            <MultiBinding Converter="{x:Static converters:TabSizeConverter.Instance}">
+                <Binding RelativeSource="{RelativeSource AncestorType=TabControl}" />
+                <Binding RelativeSource="{RelativeSource AncestorType=TabControl}" Path="Bounds.Width" />
+            </MultiBinding>
+        </Setter>
+    </Style>
+
+    <!-- ===================== HighlightedCheckBox ===================== -->
+    <Style Selector="CheckBox.HighlightedCheckBox">
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="White" />
+        <Style.Animations>
+            <Animation Duration="0:0:1" IterationCount="Infinite" PlaybackDirection="Alternate">
+                <KeyFrame Cue="0%">
+                    <Setter Property="BorderBrush" Value="YellowGreen" />
+                    <Setter Property="BorderThickness" Value="0" />
+                </KeyFrame>
+                <KeyFrame Cue="100%">
+                    <Setter Property="BorderBrush" Value="Goldenrod" />
+                    <Setter Property="BorderThickness" Value="2" />
+                </KeyFrame>
+            </Animation>
+        </Style.Animations>
+    </Style>
+
+    <!-- ===================== CustomSeparator (caption from Tag) ===================== -->
+    <Style Selector="Separator.CustomSeparator">
+        <Setter Property="Background" Value="{DynamicResource Layer1BorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="Margin" Value="0 8" />
+        <Setter Property="Height" Value="NaN" />
+        <Setter Property="MinHeight" Value="1" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid ColumnDefinitions="*,Auto,*">
+                    <Border Grid.Column="0" Height="1" VerticalAlignment="Center" Background="{TemplateBinding Background}" />
+                    <TextBlock Name="TagTextBlock" Grid.Column="1" VerticalAlignment="Center" Text="{TemplateBinding Tag}"
+                               Foreground="{TemplateBinding Foreground}" FontWeight="SemiBold" FontSize="11" Margin="10 0"
+                               IsVisible="{Binding $parent[Separator].Tag, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                    <Border Grid.Column="2" Height="1" VerticalAlignment="Center" Background="{TemplateBinding Background}" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Separator.CustomVerticalSeparator">
+        <Setter Property="Background" Value="{DynamicResource Layer1BorderBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="Margin" Value="8 0" />
+        <Setter Property="Width" Value="NaN" />
+        <Setter Property="Height" Value="NaN" />
+        <Setter Property="MinWidth" Value="1" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Stretch" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <LayoutTransformControl>
+                    <LayoutTransformControl.LayoutTransform>
+                        <RotateTransform Angle="90" />
+                    </LayoutTransformControl.LayoutTransform>
+                    <Grid ColumnDefinitions="*,Auto,*">
+                        <Border Grid.Column="0" Height="1" VerticalAlignment="Center" Background="{TemplateBinding Background}" />
+                        <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="{TemplateBinding Tag}"
+                                   Foreground="{TemplateBinding Foreground}" FontWeight="SemiBold" FontSize="11" Margin="10 0"
+                                   IsVisible="{Binding $parent[Separator].Tag, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                        <Border Grid.Column="2" Height="1" VerticalAlignment="Center" Background="{TemplateBinding Background}" />
+                    </Grid>
+                </LayoutTransformControl>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- ===================== TextBoxDefaultStyle (WPF style without setters) ===================== -->
+    <Style Selector="TextBox.TextBoxDefaultStyle" />
+
+    <!-- ===================== DirectoryFilesListBox ===================== -->
+    <Style Selector="ListBox.DirectoryFilesListBox">
+        <Setter Property="ItemsSource" Value="{Binding CUE4Parse.GameDirectory.DirectoryFilesView}" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+        <Setter Property="SelectionMode" Value="{Binding LoadingMode, Source={x:Static settings:UserSettings.Default}, Converter={x:Static converters:LoadingModeToSelectionModeConverter.Instance}}" />
+        <Setter Property="ItemTemplate">
+            <DataTemplate>
+                <Grid ColumnDefinitions="Auto,*,110,75">
+                    <Panel Width="16" Height="16" HorizontalAlignment="Center" Margin="0 0 4 0">
+                        <Image Source="/Resources/archive_enabled.png" Width="16" Height="16" RenderOptions.BitmapInterpolationMode="HighQuality">
+                            <Image.IsVisible>
+                                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                    <Binding Path="IsEnabled" />
+                                    <Binding Path="!IsLooseFilesContainer" />
+                                </MultiBinding>
+                            </Image.IsVisible>
+                        </Image>
+                        <Image Source="/Resources/archive_disabled.png" Width="16" Height="16" RenderOptions.BitmapInterpolationMode="HighQuality">
+                            <Image.IsVisible>
+                                <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                    <Binding Path="!IsEnabled" />
+                                    <Binding Path="!IsLooseFilesContainer" />
+                                </MultiBinding>
+                            </Image.IsVisible>
+                        </Image>
+                        <Image Source="/Resources/asset.png" Width="16" Height="16" RenderOptions.BitmapInterpolationMode="HighQuality"
+                               IsVisible="{Binding IsLooseFilesContainer}" />
+                    </Panel>
+                    <TextBlock Grid.Column="1" HorizontalAlignment="Left" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Grid.Column="2" Margin="10 0 0 0" HorizontalAlignment="Right" VerticalAlignment="Bottom" FontSize="11"
+                               Foreground="{DynamicResource DisabledForegroundBrush}"
+                               Text="{Binding FileCount, StringFormat='{}{0:N0} files'}" />
+                    <TextBlock Grid.Column="3" HorizontalAlignment="Right" Margin="10 0 0 0"
+                               Text="{Binding Length, Converter={x:Static converters:SizeToStringConverter.Instance}}"
+                               IsVisible="{Binding !IsLooseFilesContainer}" />
+                </Grid>
+            </DataTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.DirectoryFilesListBox > ListBoxItem">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="IsEnabled" Value="{Binding IsEnabled}" />
+    </Style>
+    <Style Selector="ListBox.DirectoryFilesListBox:empty">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid>
+                    <TextBlock Text="No archives found in the specified directory" FontWeight="SemiBold" TextAlignment="Center"
+                               Foreground="{DynamicResource ErrorBrush}" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- ===================== FolderExpanderStyle (FolderTree row arrow) ===================== -->
+    <Style Selector="ToggleButton.FolderExpanderStyle">
+        <Setter Property="Width" Value="20" />
+        <Setter Property="Height" Value="20" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="ClickMode" Value="Press" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{Binding $parent[ListBoxItem].Foreground}" />
+        <!-- WPF: Visibility=Hidden when the folder has no sub folder -->
+        <Setter Property="IsHitTestVisible" Value="{Binding Folders.Count, Converter={x:Static converters:IntGreaterThanZeroToVisibilityConverter.Instance}}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="Transparent">
+                    <Viewbox Name="Arrow" Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center"
+                             IsVisible="{TemplateBinding IsHitTestVisible}">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="{TemplateBinding Foreground}" Data="{StaticResource ArrowIcon}" />
+                        </Canvas>
+                    </Viewbox>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ToggleButton.FolderExpanderStyle /template/ Viewbox#Arrow">
+        <Setter Property="RenderTransform" Value="rotate(-90deg)" />
+    </Style>
+    <Style Selector="ToggleButton.FolderExpanderStyle:checked /template/ Viewbox#Arrow">
+        <Setter Property="RenderTransform" Value="rotate(-45deg)" />
+    </Style>
+    <!-- "animate" is set by FolderTree while the user toggles a folder (WPF ExpandArrow/CollapseArrow storyboards) -->
+    <Style Selector="ToggleButton.FolderExpanderStyle.animate /template/ Viewbox#Arrow">
+        <Setter Property="Transitions">
+            <Transitions>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />
+            </Transitions>
+        </Setter>
+    </Style>
+
+    <!-- ===================== AssetsFolderListBox (FolderTree) ===================== -->
+    <Style Selector="ListBox.AssetsFolderListBox">
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <VirtualizingStackPanel />
+            </ItemsPanelTemplate>
+        </Setter>
+        <Setter Property="ItemTemplate">
+            <DataTemplate>
+                <Grid ColumnDefinitions="Auto,Auto,*">
+                    <ToggleButton Grid.Column="0" Classes="FolderExpanderStyle" IsChecked="{Binding IsExpanded, Mode=OneWay}" />
+                    <StackPanel Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Margin="0 3 0 3">
+                        <Grid Width="16" Height="16" Margin="0 0 3.5 0" VerticalAlignment="Center">
+                            <Panel IsVisible="{Binding #CustomFolderIcon.Source, Converter={x:Static ObjectConverters.IsNull}}">
+                                <Image Width="16" Height="14" Source="{StaticResource TreeFolderClosedImage}">
+                                    <Image.IsVisible>
+                                        <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                            <Binding Path="!IsExpanded" />
+                                            <Binding Path="!IsSelected" RelativeSource="{RelativeSource AncestorType=ListBoxItem}" />
+                                        </MultiBinding>
+                                    </Image.IsVisible>
+                                </Image>
+                                <Image Width="16" Height="14" Source="{StaticResource TreeFolderOpenImage}">
+                                    <Image.IsVisible>
+                                        <MultiBinding Converter="{x:Static BoolConverters.Or}">
+                                            <Binding Path="IsExpanded" />
+                                            <Binding Path="IsSelected" RelativeSource="{RelativeSource AncestorType=ListBoxItem}" />
+                                        </MultiBinding>
+                                    </Image.IsVisible>
+                                </Image>
+                            </Panel>
+                            <Image x:Name="CustomFolderIcon" Width="16" Height="16"
+                                   Source="{Binding Header, Converter={x:Static converters:FolderTreeIconConverter.Instance}}"
+                                   IsVisible="{Binding $self.Source, Converter={x:Static ObjectConverters.IsNotNull}}" />
+                        </Grid>
+                        <Border CornerRadius="5" Height="10" MinWidth="10" Background="#705542" Margin="-10.5 0 4.5 0" VerticalAlignment="Bottom"
+                                IsVisible="{Binding AssetsList.Assets.Count, Converter={x:Static converters:IntGreaterThanZeroToVisibilityConverter.Instance}}">
+                            <TextBlock Text="{Binding AssetsList.Assets.Count}" Margin="2.5 0 2.5 0" Padding="1 0 0 0" FontSize="7"
+                                       Foreground="White" VerticalAlignment="Center" HorizontalAlignment="Center" />
+                        </Border>
+                        <TextBlock Text="{Binding Header}" VerticalAlignment="Center" HorizontalAlignment="Left">
+                            <ToolTip.Tip>
+                                <TextBlock>
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{}{0} has {1} folders and {2} packages">
+                                            <Binding Path="Header" />
+                                            <Binding Path="Folders.Count" />
+                                            <Binding Path="AssetsList.Assets.Count" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+                            </ToolTip.Tip>
+                        </TextBlock>
+                    </StackPanel>
+                </Grid>
+            </DataTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ListBox.AssetsFolderListBox > ListBoxItem">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="ContextMenu" Value="{DynamicResource FolderContextMenu}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Margin" Value="{Binding Indent}" />
+    </Style>
+
+    <!-- ===================== GameFilesTabControl (asset tabs) ===================== -->
+    <Style Selector="TabControl.GameFilesTabControl">
+        <Setter Property="ItemsSource" Value="{Binding CUE4Parse.TabControl.TabsItems}" />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <WrapPanel Background="Transparent" />
+            </ItemsPanelTemplate>
+        </Setter>
+        <Setter Property="ItemTemplate">
+            <DataTemplate>
+                <DockPanel Background="Transparent"
+                           controls:MouseBindings.DoubleClickCommand="{Binding TabCommand}"
+                           controls:MouseBindings.DoubleClickCommandParameter="Open_Properties"
+                           controls:MouseBindings.MiddleClickCommand="{Binding TabCommand}"
+                           controls:MouseBindings.MiddleClickCommandParameter="{Binding}">
+                    <Button DockPanel.Dock="Right" CornerRadius="5" Width="11" Height="11" MinWidth="0" MinHeight="0" Padding="0" Margin="10 0 -2.5 -1"
+                            ToolTip.Tip="Close Tab" Command="{Binding TabCommand}" CommandParameter="Close_Tab" />
+                    <TextBlock Text="{Binding Header}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding $self.Text}">
+                        <TextBlock.Width>
+                            <MultiBinding Converter="{x:Static converters:TabSizeConverter.Instance}" ConverterParameter="6">
+                                <Binding RelativeSource="{RelativeSource AncestorType=TabControl}" />
+                                <Binding RelativeSource="{RelativeSource AncestorType=TabControl}" Path="Bounds.Width" />
+                            </MultiBinding>
+                        </TextBlock.Width>
+                    </TextBlock>
+                </DockPanel>
+            </DataTemplate>
+        </Setter>
+        <!-- DataContext: the selected FModel.ViewModels.TabItem -->
+        <Setter Property="ContentTemplate">
+            <DataTemplate>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="{Binding AvalonImageSize, Source={x:Static settings:UserSettings.Default}, Mode=TwoWay}" />
+                    </Grid.ColumnDefinitions>
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <controls:AvalonEditor x:Name="DynamicArea" Grid.Column="0" Grid.RowSpan="2"
+                                           Grid.ColumnSpan="{Binding HasImage, Converter={StaticResource ImageColumnSpanConverter}}" />
+                    <GridSplitter Grid.Column="1" Grid.RowSpan="2" Width="4" VerticalAlignment="Stretch" ResizeDirection="Columns" KeyboardIncrement="0"
+                                  IsVisible="{Binding HasImage}"
+                                  Background="{DynamicResource Layer3BackgroundBrush}" />
+
+                    <!-- image header: name, texture inspector, paging, format / size / dimensions / mips -->
+                    <Border Grid.Column="2" Grid.Row="0" Padding="10 6 8 8" BorderThickness="0 0 0 1"
+                            BorderBrush="{DynamicResource Layer1BorderBrush}"
+                            TextElement.Foreground="{DynamicResource ForegroundBrush}"
+                            IsVisible="{Binding HasImage}">
+                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                            <TextBlock Margin="0 0 4 0" VerticalAlignment="Center" FontSize="12" FontWeight="Bold" TextTrimming="CharacterEllipsis"
+                                       Text="{Binding SelectedImage.Name}" ToolTip.Tip="{Binding SelectedImage.Name}" />
+                            <Button Grid.Column="1" Classes="ImageHeaderButton" Margin="0 2" VerticalAlignment="Center"
+                                    ToolTip.Tip="Open in Texture Inspector"
+                                    Command="{Binding ImageCommand}" CommandParameter="InspectTexture"
+                                    IsEnabled="{Binding CanOpenSnooper, Source={x:Static viewModels:SnooperViewModel.Instance}}"
+                                    IsVisible="{Binding SelectedImage.HasTexture, FallbackValue=False}">
+                                <Path Stretch="Uniform" Fill="{Binding $parent[Button].Foreground}" Data="{StaticResource TextureInspectorIcon}" />
+                            </Button>
+
+                            <DockPanel Grid.Row="1" Grid.ColumnSpan="2" Margin="0 1 0 0"
+                                       TextElement.Foreground="{DynamicResource DisabledForegroundBrush}">
+                                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Margin="6 0 0 0" VerticalAlignment="Center"
+                                            IsVisible="{Binding HasMultipleImages}">
+                                    <RepeatButton Classes="ImagePagerButton" ToolTip.Tip="Previous image"
+                                                  Command="{Binding ImageCommand}" CommandParameter="PreviousImage">
+                                        <Path Data="M4,0 L0,4 4,8" Width="6" Height="9" Stretch="Uniform" StrokeThickness="1.3"
+                                              Stroke="{Binding $parent[RepeatButton].Foreground}" />
+                                    </RepeatButton>
+                                    <Border Height="18" Margin="1 0" Padding="5 0" CornerRadius="3" Background="{DynamicResource Layer1BackgroundBrush}">
+                                        <TextBlock FontSize="11" VerticalAlignment="Center" Text="{Binding Page}" Foreground="{DynamicResource ForegroundBrush}" />
+                                    </Border>
+                                    <RepeatButton Classes="ImagePagerButton" ToolTip.Tip="Next image"
+                                                  Command="{Binding ImageCommand}" CommandParameter="NextImage">
+                                        <Path Data="M0,0 L4,4 0,8" Width="6" Height="9" Stretch="Uniform" StrokeThickness="1.3"
+                                              Stroke="{Binding $parent[RepeatButton].Foreground}" />
+                                    </RepeatButton>
+                                </StackPanel>
+                                <TextBlock DockPanel.Dock="Left" FontSize="11" VerticalAlignment="Center"
+                                           IsVisible="{Binding SelectedImage.HasTexture, FallbackValue=False}">
+                                    <Run Text="{Binding SelectedImage.TextureFormat, Mode=OneWay}" Foreground="{DynamicResource AlertBrush}" />
+                                    <Run Text="&#160;/&#160;" />
+                                    <Run Text="{Binding SelectedImage.InspectorTexture.Data.Length, Mode=OneWay, Converter={x:Static converters:SizeToStringConverter.Instance}}" />
+                                    <Run Text="&#160;/&#160;" />
+                                </TextBlock>
+                                <TextBlock FontSize="11" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                    <Run>
+                                        <Run.Text>
+                                            <MultiBinding Mode="OneWay" StringFormat="{}{0} × {1}px" FallbackValue="">
+                                                <Binding Path="SelectedImage.Image.PixelWidth" />
+                                                <Binding Path="SelectedImage.Image.PixelHeight" />
+                                            </MultiBinding>
+                                        </Run.Text>
+                                    </Run>
+                                    <Run Text="{Binding SelectedImage.MipCount, Mode=OneWay, StringFormat='{}&#160;/&#160;{0} mips', TargetNullValue='', FallbackValue=''}" />
+                                </TextBlock>
+                            </DockPanel>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="2" Grid.Row="1" Margin="8" BorderThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            BorderBrush="{DynamicResource Layer2BorderBrush}"
+                            IsVisible="{Binding HasImage}">
+                        <Image VerticalAlignment="Center" HorizontalAlignment="Center" Stretch="Uniform"
+                               IsVisible="{Binding HasImage}"
+                               Source="{Binding SelectedImage.Image}"
+                               controls:ImageAnimation.Frames="{Binding SelectedImage.AnimationFrames}"
+                               ImageOptions.NearestNeighbor="{Binding SelectedImage.RenderNearestNeighbor}"
+                               controls:MouseBindings.DoubleClickCommand="{Binding ImageCommand}"
+                               controls:MouseBindings.DoubleClickCommandParameter="Open">
+                            <Image.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Open in Texture Inspector" Command="{Binding ImageCommand}" CommandParameter="InspectTexture"
+                                              IsEnabled="{Binding CanOpenSnooper, Source={x:Static viewModels:SnooperViewModel.Instance}}"
+                                              IsVisible="{Binding SelectedImage.HasTexture, FallbackValue=False}">
+                                        <MenuItem.Icon>
+                                            <Path Width="12" Height="12" Stretch="Uniform" Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource TextureInspectorIcon}" />
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Open in New Window" Command="{Binding ImageCommand}" CommandParameter="Open">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="M20,4H4C2.9,4,2,4.9,2,6v12c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.1,4,20,4z M20,18H4V6h16V18z" />
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="M6,12c0.55,0,1-0.45,1-1V9h2c0.55,0,1-0.45,1-1S9.55,7,9,7H6C5.45,7,5,7.45,5,8v3C5,11.55,5.45,12,6,12z" />
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="M15,17h3c0.55,0,1-0.45,1-1v-3c0-0.55-0.45-1-1-1s-1,0.45-1,1v2h-2c-0.55,0-1,0.45-1,1S14.45,17,15,17z" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Copy Image" Command="{Binding ImageCommand}" CommandParameter="Copy">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource CopyIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Export Image" Command="{Binding ImageCommand}" CommandParameter="Save">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SaveIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator />
+                                    <MenuItem Header="Ignore Alpha in Preview" ToggleType="CheckBox"
+                                              IsChecked="{Binding SelectedImage.NoAlpha, Mode=TwoWay}"
+                                              IsEnabled="{Binding SelectedImage.CanDisableAlpha}" />
+                                </ContextMenu>
+                            </Image.ContextMenu>
+                        </Image>
+                    </Border>
+                </Grid>
+            </DataTemplate>
+        </Setter>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Grid RowDefinitions="Auto,*">
+                    <Grid Name="HeaderPanel" Grid.Row="0" ColumnDefinitions="*,Auto">
+                        <ItemsPresenter Name="PART_ItemsPresenter" Grid.Column="0" ZIndex="1" ItemsPanel="{TemplateBinding ItemsPanel}" />
+                        <Menu Grid.Column="1" Background="{DynamicResource Layer3BackgroundBrush}" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                            <MenuItem Command="{Binding CUE4Parse.TabControl.AddTabCommand}" ToolTip.Tip="Add New Tab" Width="30">
+                                <MenuItem.Header>
+                                    <Viewbox Width="16" Height="16" HorizontalAlignment="Center">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource AddIcon}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </MenuItem.Header>
+                            </MenuItem>
+                        </Menu>
+                    </Grid>
+
+                    <Border Name="Border" Grid.Row="1"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius, Converter={x:Static converters:CornerRadiusFilterConverter.NoTopLeft}}">
+                        <ContentPresenter Name="PART_SelectedContentHost" Margin="0 8 0 0"
+                                          Content="{TemplateBinding SelectedContent}"
+                                          ContentTemplate="{TemplateBinding SelectedContentTemplate}" />
+                    </Border>
+
+                    <Border Name="SelectedItemHighlight" Grid.Row="1" Height="4" VerticalAlignment="Top"
+                            Background="{DynamicResource Layer1HighlightBrush}"
+                            Margin="{TemplateBinding BorderThickness}"
+                            CornerRadius="{TemplateBinding CornerRadius, Converter={x:Static converters:CornerRadiusFilterConverter.TopRightOnly}}" />
+                </Grid>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="TabControl.GameFilesTabControl[(LayerExtension.ComputedLayer)=2] /template/ Border#SelectedItemHighlight">
+        <Setter Property="Background" Value="{DynamicResource Layer2HighlightBrush}" />
+    </Style>
+    <Style Selector="TabControl.GameFilesTabControl[(LayerExtension.ComputedLayer)=3] /template/ Border#SelectedItemHighlight">
+        <Setter Property="Background" Value="{DynamicResource Layer3HighlightBrush}" />
+    </Style>
+    <Style Selector="TabControl.GameFilesTabControl[(LayerExtension.ComputedLayer)=4] /template/ Border#SelectedItemHighlight">
+        <Setter Property="Background" Value="{DynamicResource Layer4HighlightBrush}" />
+    </Style>
+    <Style Selector="TabControl.GameFilesTabControl > TabItem">
+        <Setter Property="ContextMenu">
+            <ContextMenu>
+                <MenuItem Header="Close" Command="{Binding TabCommand}" CommandParameter="Close_Tab">
+                    <MenuItem.Icon>
+                        <Viewbox Width="16" Height="16">
+                            <Canvas Width="24" Height="24">
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource RemoveIcon}" />
+                            </Canvas>
+                        </Viewbox>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Close All Tabs" Command="{Binding TabCommand}" CommandParameter="Close_All_Tabs">
+                    <MenuItem.Icon>
+                        <Viewbox Width="16" Height="16">
+                            <Canvas Width="24" Height="24">
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource RemoveIcon}" />
+                            </Canvas>
+                        </Viewbox>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Close Other Tabs" Command="{Binding TabCommand}" CommandParameter="Close_Other_Tabs">
+                    <MenuItem.Icon>
+                        <Viewbox Width="16" Height="16">
+                            <Canvas Width="24" Height="24">
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource RemoveIcon}" />
+                            </Canvas>
+                        </Viewbox>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <Separator />
+                <!-- WPF bound IsEnabled to PlacementTarget.SelectedItems (a TabItem has none -> always disabled),
+                     the tab entry is checked instead -->
+                <MenuItem Header="Show Metadata" Command="{Binding TabCommand}" CommandParameter="Assets_Show_Metadata">
+                    <MenuItem.Icon>
+                        <Viewbox Width="16" Height="16">
+                            <Canvas Width="24" Height="24">
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource InfoIcon}" />
+                            </Canvas>
+                        </Viewbox>
+                    </MenuItem.Icon>
+                    <MenuItem.IsEnabled>
+                        <Binding>
+                            <Binding.Converter>
+                                <converters:GameFileMeetsConditionConverter>
+                                    <converters:GameFileMeetsConditionConverter.Conditions>
+                                        <converters:GameFileIsUePackageCondition />
+                                    </converters:GameFileMeetsConditionConverter.Conditions>
+                                </converters:GameFileMeetsConditionConverter>
+                            </Binding.Converter>
+                        </Binding>
+                    </MenuItem.IsEnabled>
+                </MenuItem>
+                <MenuItem Header="Find References" Command="{Binding TabCommand}" CommandParameter="Find_References">
+                    <MenuItem.Icon>
+                        <Viewbox Width="16" Height="16">
+                            <Canvas Width="24" Height="24">
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SearchIcon}" />
+                            </Canvas>
+                        </Viewbox>
+                    </MenuItem.Icon>
+                    <MenuItem.IsEnabled>
+                        <Binding>
+                            <Binding.Converter>
+                                <converters:GameFileMeetsConditionConverter>
+                                    <converters:GameFileMeetsConditionConverter.Conditions>
+                                        <converters:GameFileIsUePackageCondition />
+                                        <converters:GameFileIsIoStoreCondition />
+                                    </converters:GameFileMeetsConditionConverter.Conditions>
+                                </converters:GameFileMeetsConditionConverter>
+                            </Binding.Converter>
+                        </Binding>
+                    </MenuItem.IsEnabled>
+                </MenuItem>
+                <MenuItem Header="Decompile Blueprint" Command="{Binding TabCommand}" CommandParameter="Assets_Decompile"
+                          IsVisible="{Binding ShowDecompileOption, Source={x:Static settings:UserSettings.Default}}">
+                    <MenuItem.Icon>
+                        <Viewbox Width="16" Height="16">
+                            <Canvas Width="24" Height="24">
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource CppIcon}" />
+                            </Canvas>
+                        </Viewbox>
+                    </MenuItem.Icon>
+                    <MenuItem.IsEnabled>
+                        <Binding>
+                            <Binding.Converter>
+                                <converters:GameFileMeetsConditionConverter>
+                                    <converters:GameFileMeetsConditionConverter.Conditions>
+                                        <converters:GameFileIsUePackageCondition />
+                                    </converters:GameFileMeetsConditionConverter.Conditions>
+                                </converters:GameFileMeetsConditionConverter>
+                            </Binding.Converter>
+                        </Binding>
+                    </MenuItem.IsEnabled>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="Export">
+                    <MenuItem.Icon>
+                        <Viewbox Width="16" Height="16">
+                            <Canvas Width="24" Height="24">
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="M12 2l.117 .007a1 1 0 0 1 .876 .876l.007 .117v4l.005 .15a2 2 0 0 0 1.838 1.844l.157 .006h4l.117 .007a1 1 0 0 1 .876 .876l.007 .117v9a3 3 0 0 1 -2.824 2.995l-.176 .005h-10a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-14a3 3 0 0 1 2.824 -2.995l.176 -.005zm1 10l-5 5v2h2l5 -5a1.414 1.414 0 0 0 -2 -2" />
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="M19 7h-4l-.001 -4.001z" />
+                            </Canvas>
+                        </Viewbox>
+                    </MenuItem.Icon>
+                    <MenuItem Command="{Binding TabCommand}" CommandParameter="Save_Data">
+                        <MenuItem.Header>
+                            <TextBlock Text="{Binding Entry.Extension, FallbackValue='Raw Data', StringFormat='Raw Data (.{0})'}" />
+                        </MenuItem.Header>
+                        <MenuItem.Icon>
+                            <Viewbox Width="16" Height="16">
+                                <Canvas Width="24" Height="24">
+                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource ExportIcon}" />
+                                </Canvas>
+                            </Viewbox>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Properties (.json)" Command="{Binding TabCommand}" CommandParameter="Save_Properties">
+                        <MenuItem.Icon>
+                            <Viewbox Width="16" Height="16">
+                                <Canvas Width="24" Height="24">
+                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SaveIcon}" />
+                                </Canvas>
+                            </Viewbox>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Texture" Command="{Binding TabCommand}" CommandParameter="Save_Textures">
+                        <MenuItem.Icon>
+                            <Viewbox Width="16" Height="16">
+                                <Canvas Width="24" Height="24">
+                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource TextureIcon}" />
+                                </Canvas>
+                            </Viewbox>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Model" Command="{Binding TabCommand}" CommandParameter="Save_Models">
+                        <MenuItem.Icon>
+                            <Viewbox Width="16" Height="16">
+                                <Canvas Width="24" Height="24">
+                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource ModelIcon}" />
+                                </Canvas>
+                            </Viewbox>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="World" Command="{Binding TabCommand}" CommandParameter="Save_Worlds">
+                        <MenuItem.Icon>
+                            <Viewbox Width="16" Height="16">
+                                <Canvas Width="24" Height="24">
+                                    <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World1}" />
+                                    <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World2}" />
+                                    <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World3}" />
+                                    <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World4}" />
+                                    <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World5}" />
+                                </Canvas>
+                            </Viewbox>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Animation" Command="{Binding TabCommand}" CommandParameter="Save_Animations">
+                        <MenuItem.Icon>
+                            <Viewbox Width="16" Height="16">
+                                <Canvas Width="24" Height="24">
+                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource AnimationIcon}" />
+                                </Canvas>
+                            </Viewbox>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                    <MenuItem Header="Audio" Command="{Binding TabCommand}" CommandParameter="Save_Audio">
+                        <MenuItem.Icon>
+                            <Viewbox Width="16" Height="16">
+                                <Canvas Width="24" Height="24">
+                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource AudioIcon}" />
+                                </Canvas>
+                            </Viewbox>
+                        </MenuItem.Icon>
+                    </MenuItem>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="Open Properties" Command="{Binding TabCommand}" CommandParameter="Open_Properties">
+                    <MenuItem.Icon>
+                        <Viewbox Width="16" Height="16">
+                            <Canvas Width="24" Height="24">
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="M20,4H4C2.9,4,2,4.9,2,6v12c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2V6C22,4.9,21.1,4,20,4z M20,18H4V6h16V18z" />
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="M6,12c0.55,0,1-0.45,1-1V9h2c0.55,0,1-0.45,1-1S9.55,7,9,7H6C5.45,7,5,7.45,5,8v3C5,11.55,5.45,12,6,12z" />
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="M15,17h3c0.55,0,1-0.45,1-1v-3c0-0.55-0.45-1-1-1s-1,0.45-1,1v2h-2c-0.55,0-1,0.45-1,1S14.45,17,15,17z" />
+                            </Canvas>
+                        </Viewbox>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Jump to Package Folder" Command="{Binding GoToCommand}" CommandParameter="{Binding Entry.Directory}">
+                    <MenuItem.Icon>
+                        <Viewbox Width="16" Height="16">
+                            <Canvas Width="24" Height="24">
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="M20,6h-8l-1.41-1.41C10.21,4.21,9.7,4,9.17,4H4C2.9,4,2,4.9,2,6v12c0,1.1,0.9,2,2,2h16c1.1,0,2-0.9,2-2V8 C22,6.9,21.1,6,20,6z M12,15.79V14H9c-0.55,0-1-0.45-1-1v0c0-0.55,0.45-1,1-1h3v-1.79c0-0.45,0.54-0.67,0.85-0.35l2.79,2.79 c0.2,0.2,0.2,0.51,0,0.71l-2.79,2.79C12.54,16.46,12,16.24,12,15.79z" />
+                            </Canvas>
+                        </Viewbox>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Header="Copy">
+                    <MenuItem.Icon>
+                        <Viewbox Width="16" Height="16">
+                            <Canvas Width="24" Height="24">
+                                <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource CopyIcon}" />
+                            </Canvas>
+                        </Viewbox>
+                    </MenuItem.Icon>
+                    <MenuItem Header="Package Path" Command="{Binding TabCommand}" CommandParameter="File_Path" />
+                    <MenuItem Header="Package Name" Command="{Binding TabCommand}" CommandParameter="File_Name" />
+                    <MenuItem Header="Directory Path" Command="{Binding TabCommand}" CommandParameter="Directory_Path" />
+                    <MenuItem Header="Package Path w/o Extension" Command="{Binding TabCommand}" CommandParameter="File_Path_No_Extension" />
+                    <MenuItem Header="Package Name w/o Extension" Command="{Binding TabCommand}" CommandParameter="File_Name_No_Extension" />
+                </MenuItem>
+            </ContextMenu>
+        </Setter>
+    </Style>
+
+    <Style Selector="ToggleButton.CustomExpanderDownHeaderStyle">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="Transparent">
+                    <Viewbox Width="16" Height="16" HorizontalAlignment="Center">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="{TemplateBinding Foreground}" Data="{StaticResource ExpanderIcon}" />
+                        </Canvas>
+                    </Viewbox>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ToggleButton.CustomExpanderDownHeaderStyle:pointerover">
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="Expander">
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border>
+                    <DockPanel>
+                        <ToggleButton Name="HeaderSite" DockPanel.Dock="Top" Classes="CustomExpanderDownHeaderStyle"
+                                      Content="{TemplateBinding Header}" ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                      Foreground="{TemplateBinding Foreground}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                                      IsChecked="{TemplateBinding IsExpanded, Mode=TwoWay}" />
+                        <ContentPresenter Name="ExpandSite" DockPanel.Dock="Bottom" Focusable="False"
+                                          Margin="{TemplateBinding Padding}"
+                                          IsVisible="{TemplateBinding IsExpanded}"
+                                          Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                    </DockPanel>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Expander:expanded /template/ ToggleButton#HeaderSite">
+        <Setter Property="Margin" Value="0 0 0 5" />
+    </Style>
+
+    <!-- ===================== ComboBox / Button / ScrollBar (implicit overrides) ===================== -->
+    <Style Selector="ComboBoxItem">
+        <Setter Property="Focusable" Value="False" />
+    </Style>
+    <Style Selector="ComboBox">
+        <Setter Property="Focusable" Value="False" />
+    </Style>
+    <Style Selector="Button">
+        <Setter Property="Focusable" Value="False" />
+    </Style>
+    <Style Selector="ScrollBar[(LayerExtension.ComputedLayer)=2]">
+        <Setter Property="Foreground" Value="{DynamicResource Layer2BorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource Layer2BackgroundBrush}" />
+    </Style>
+    <Style Selector="ScrollBar[(LayerExtension.ComputedLayer)=3]">
+        <Setter Property="Foreground" Value="{DynamicResource Layer4BorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource Layer4BackgroundBrush}" />
+    </Style>
+    <Style Selector="ScrollBar[(LayerExtension.ComputedLayer)=4]">
+        <Setter Property="Foreground" Value="{DynamicResource Layer4BorderBrush}" />
+        <Setter Property="Background" Value="{DynamicResource Layer4BackgroundBrush}" />
+    </Style>
+
+    <!-- ===================== UComboBox (UE versions) ===================== -->
+    <Style Selector="ComboBox.UComboBox">
+        <Setter Property="PlaceholderText" Value="UE5 / UE4 / GameName..." />
+        <Setter Property="ItemsPanel">
+            <ItemsPanelTemplate>
+                <VirtualizingStackPanel />
+            </ItemsPanelTemplate>
+        </Setter>
+    </Style>
+
+    <!-- ===================== StatusBarButton ===================== -->
+    <Style Selector="Button.StatusBarButton">
+        <Setter Property="Foreground" Value="{Binding $parent[StatusBar].Foreground}" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="8 0" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Panel>
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}" />
+                    <Border Name="Spotlight" Background="Transparent" CornerRadius="{TemplateBinding CornerRadius}" />
+                    <ContentPresenter Margin="{TemplateBinding Padding}" Foreground="{TemplateBinding Foreground}"
+                                      Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                      VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" />
+                </Panel>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.StatusBarButton:pointerover /template/ Border#Spotlight">
+        <Setter Property="Background" Value="#33FFFFFF" />
+    </Style>
+
+    <!-- ===================== ModernToggleButtonStyle ===================== -->
+    <Style Selector="ToggleButton.ModernToggleButtonStyle">
+        <Setter Property="Background" Value="{DynamicResource Layer1BackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Layer3BackgroundBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ToggleButton.ModernToggleButtonStyle:checked">
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.ModernToggleButtonStyle:pointerover">
+        <Setter Property="Background" Value="{DynamicResource Layer3BackgroundBrush}" />
+    </Style>
+
+    <!-- ===================== AssetsExplorerToggleButtonStyle ===================== -->
+    <Style Selector="ToggleButton.AssetsExplorerToggleButtonStyle">
+        <Setter Property="Background" Value="{DynamicResource Layer1BackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Layer3BackgroundBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="ToolTip.Tip" Value="{Binding SwitchAssetExplorer, Source={x:Static settings:UserSettings.Default}, StringFormat='File Properties ({0})'}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="8">
+                    <Viewbox Width="18" Height="18">
+                        <Canvas Width="24" Height="24">
+                            <Path Name="IconPath" Data="{StaticResource AssetIcon}" Fill="{DynamicResource ForegroundBrush}" />
+                        </Canvas>
+                    </Viewbox>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="ToggleButton.AssetsExplorerToggleButtonStyle:checked">
+        <Setter Property="Background" Value="{DynamicResource AccentBrush}" />
+        <Setter Property="ToolTip.Tip" Value="{Binding SwitchAssetExplorer, Source={x:Static settings:UserSettings.Default}, StringFormat='Assets Explorer ({0})'}" />
+    </Style>
+    <Style Selector="ToggleButton.AssetsExplorerToggleButtonStyle:checked /template/ Path#IconPath">
+        <Setter Property="Data" Value="{DynamicResource FolderIconAlt}" />
+    </Style>
+    <Style Selector="ToggleButton.AssetsExplorerToggleButtonStyle:pointerover">
+        <Setter Property="Background" Value="{DynamicResource Layer3BackgroundBrush}" />
+    </Style>
+
+    <!-- ===================== ExplorerViewToggleButton (keeps the border color while toggled) ===================== -->
+    <Style Selector="ToggleButton.ExplorerViewToggleButton">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="7" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{DynamicResource Layer0BorderBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.ExplorerViewToggleButton:checked">
+        <Setter Property="BorderBrush" Value="{DynamicResource Layer1InteractionBorderBrush}" />
+    </Style>
+
+    <!-- image preview header (texture inspector button, previous / next image) -->
+    <Style Selector="Button.ImageHeaderButton">
+        <Setter Property="Width" Value="22" />
+        <Setter Property="Height" Value="22" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" CornerRadius="3">
+                    <ContentPresenter Content="{TemplateBinding Content}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="Button.ImageHeaderButton:pointerover">
+        <Setter Property="Foreground" Value="#B79AF4" />
+    </Style>
+    <Style Selector="Button.ImageHeaderButton:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource DisabledForegroundBrush}" />
+    </Style>
+    <Style Selector="RepeatButton.ImagePagerButton">
+        <Setter Property="Width" Value="18" />
+        <Setter Property="Height" Value="18" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Background" Value="{DynamicResource Layer2BackgroundBrush}" />
+        <Setter Property="Foreground" Value="{DynamicResource ForegroundBrush}" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="{TemplateBinding Background}" CornerRadius="3">
+                    <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="RepeatButton.ImagePagerButton:pointerover">
+        <Setter Property="Background" Value="{DynamicResource Layer2HighlightBrush}" />
+    </Style>
+</Styles>

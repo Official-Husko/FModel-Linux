@@ -1,0 +1,734 @@
+<FWindow x:Class="FModel.Views.SearchView"
+         xmlns="https://github.com/avaloniaui"
+         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         xmlns:views="using:FModel.Views"
+         xmlns:converters="using:FModel.Views.Resources.Converters"
+         xmlns:ui="using:FModel.Framework.Ui"
+         Title="Search For Packages"
+         WindowStartupLocation="CenterScreen" ShowInTaskbar="True">
+    <FWindow.Resources>
+        <ui:BoolToObjectConverter x:Key="SearchWatermarkConverter"
+                                  TrueValue="Write your regex pattern and press enter..."
+                                  FalseValue="Write your pattern and press enter..." />
+    </FWindow.Resources>
+    <Grid Margin="5 5">
+        <GroupBox LayerExtension.Layer="2" Padding="0" Background="Transparent">
+            <TabControl x:Name="SearchTabControl" SelectionChanged="OnTabItemChange">
+                <TabItem Classes="TabItemFillSpace" Header="By Path">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0 0 0 5" ZIndex="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Grid Grid.Column="0" ZIndex="1" HorizontalAlignment="Left" Margin="5 2 0 0" IsHitTestVisible="False">
+                                <Viewbox Width="16" Height="16">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SearchIcon}" />
+                                    </Canvas>
+                                </Viewbox>
+                            </Grid>
+                            <TextBox x:Name="SearchTextBox" Grid.Column="0" Grid.ColumnSpan="2" Padding="25 0 0 0" VerticalContentAlignment="Center"
+                                     AcceptsTab="False" AcceptsReturn="False"
+                                     Text="{Binding SearchTab.FilterText, Mode=TwoWay}"
+                                     Watermark="{Binding SearchTab.HasRegexEnabled, Converter={StaticResource SearchWatermarkConverter}}" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <ToggleButton ToolTip.Tip="Match Case" Padding="5" IsChecked="{Binding SearchTab.HasMatchCaseEnabled}" Classes="ToolbarToggleButton">
+                                    <Viewbox Width="16" Height="16" HorizontalAlignment="Center">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource MatchCaseIcon}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </ToggleButton>
+                                <ToggleButton ToolTip.Tip="Regex" Padding="5" IsChecked="{Binding SearchTab.HasRegexEnabled}" Classes="ToolbarToggleButton">
+                                    <Viewbox Width="16" Height="16" HorizontalAlignment="Center">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource RegexIcon}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </ToggleButton>
+                                <Button ToolTip.Tip="Sort File Sizes" Padding="5" Classes="ToolbarButton" Click="OnSearchSortClick">
+                                    <Viewbox Width="16" Height="16" HorizontalAlignment="Center">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SortIcon}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </Button>
+                                <Button ToolTip.Tip="Clear Search Filter" Padding="5" Classes="ToolbarButton" Click="OnDeleteSearchClick">
+                                    <Viewbox Width="16" Height="16" HorizontalAlignment="Center">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource BackspaceIcon}"/>
+                                        </Canvas>
+                                    </Viewbox>
+                                </Button>
+                            </StackPanel>
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="10 0 0 0" FontStyle="Italic">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:# ### ### ##0} Loaded Packages ({1})">
+                                        <Binding Path="SearchTab.ResultsCount" FallbackValue="0" />
+                                        <Binding Path="SearchTab.CurrentSortSizeMode" FallbackValue="None" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </Grid>
+
+                        <!-- WPF replaced the ListView template by this message when there were no items -->
+                        <TextBlock Grid.Row="1" Text="No packages found matching the query" FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                                   Foreground="{DynamicResource ErrorBrush}" Margin="0 10 0 0"
+                                   IsVisible="{Binding SearchTab.SearchResultsView.IsEmpty, FallbackValue=True}" />
+                        <DataGrid Grid.Row="1" x:Name="SearchListView" ItemsSource="{Binding SearchTab.SearchResultsView}"
+                                  IsVisible="{Binding !SearchTab.SearchResultsView.IsEmpty, FallbackValue=False}"
+                                  AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended" CanUserSortColumns="True"
+                                  CanUserReorderColumns="False" CanUserResizeColumns="True" HeadersVisibility="Column" GridLinesVisibility="None">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="900" Header="Path" SortMemberPath="Path">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" Text="{Binding Path}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="225" Header="Archive" CustomSortComparer="{x:Static views:SearchView.ArchiveComparer}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" Text="{Binding Vfs.Name}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="100" Header="Size" SortMemberPath="Size">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Text="{Binding Size, Converter={x:Static converters:SizeToStringConverter.Instance}}" Margin="0 0 30 0" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Go To" Click="OnAssetDoubleClick">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource GoToIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Extract in New Tab" Click="OnAssetExtract">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource ExtractIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Show Metadata" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                        <MenuItem.CommandParameter>
+                                            <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                <Binding Source="Assets_Show_Metadata" />
+                                                <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                            </MultiBinding>
+                                        </MenuItem.CommandParameter>
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource InfoIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Find References" Click="OnFindRefs">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SearchIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                        <MenuItem.IsEnabled>
+                                            <Binding ElementName="SearchListView" Path="SelectedItem">
+                                                <Binding.Converter>
+                                                    <converters:GameFileMeetsConditionConverter>
+                                                        <converters:GameFileMeetsConditionConverter.Conditions>
+                                                        <converters:GameFileIsUePackageCondition />
+                                                        <converters:GameFileIsIoStoreCondition />
+                                                        </converters:GameFileMeetsConditionConverter.Conditions>
+                                                    </converters:GameFileMeetsConditionConverter>
+                                                </Binding.Converter>
+                                            </Binding>
+                                        </MenuItem.IsEnabled>
+                                    </MenuItem>
+                                    <MenuItem Header="Decompile Blueprint" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                        <MenuItem.CommandParameter>
+                                            <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                <Binding Source="Assets_Decompile" />
+                                                <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                            </MultiBinding>
+                                        </MenuItem.CommandParameter>
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource CppIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                        <MenuItem.IsEnabled>
+                                            <Binding ElementName="SearchListView" Path="SelectedItem">
+                                                <Binding.Converter>
+                                                    <converters:GameFileMeetsConditionConverter>
+                                                        <converters:GameFileMeetsConditionConverter.Conditions>
+                                                        <converters:GameFileIsUePackageCondition />
+                                                        </converters:GameFileMeetsConditionConverter.Conditions>
+                                                    </converters:GameFileMeetsConditionConverter>
+                                                </Binding.Converter>
+                                            </Binding>
+                                        </MenuItem.IsEnabled>
+                                    </MenuItem>
+                                    <Separator />
+                                    <MenuItem Header="Export">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="M12 2l.117 .007a1 1 0 0 1 .876 .876l.007 .117v4l.005 .15a2 2 0 0 0 1.838 1.844l.157 .006h4l.117 .007a1 1 0 0 1 .876 .876l.007 .117v9a3 3 0 0 1 -2.824 2.995l-.176 .005h-10a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-14a3 3 0 0 1 2.824 -2.995l.176 -.005zm1 10l-5 5v2h2l5 -5a1.414 1.414 0 0 0 -2 -2" />
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="M19 7h-4l-.001 -4.001z" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+
+                                        <MenuItem Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.Header>
+                                                <TextBlock Text="{Binding #SearchListView.SelectedItem.Extension, FallbackValue='Raw Data', StringFormat='Raw Data (.{0})'}" />
+                                            </MenuItem.Header>
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Data" />
+                                                    <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource ExportIcon}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Properties (.json)" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Properties" />
+                                                    <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SaveIcon}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Texture" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Textures" />
+                                                    <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource TextureIcon}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Model" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Models" />
+                                                    <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource ModelIcon}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="World" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Worlds" />
+                                                    <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World1}" />
+                                                        <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World2}" />
+                                                        <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World3}" />
+                                                        <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World4}" />
+                                                        <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World5}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Animation" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Animations" />
+                                                    <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource AnimationIcon}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Audio" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Audio" />
+                                                    <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource AudioIcon}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                    </MenuItem>
+                                    <Separator />
+                                    <MenuItem Header="Copy">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource CopyIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                        <MenuItem Header="Package Path" Command="{Binding mainApplication.CopyCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="File_Path" />
+                                                    <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                        </MenuItem>
+                                        <MenuItem Header="Package Name" Command="{Binding mainApplication.CopyCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="File_Name" />
+                                                    <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                        </MenuItem>
+                                        <MenuItem Header="Directory Path" Command="{Binding mainApplication.CopyCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Directory_Path" />
+                                                    <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                        </MenuItem>
+                                        <MenuItem Header="Package Path w/o Extension" Command="{Binding mainApplication.CopyCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="File_Path_No_Extension" />
+                                                    <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                        </MenuItem>
+                                        <MenuItem Header="Package Name w/o Extension" Command="{Binding mainApplication.CopyCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="File_Name_No_Extension" />
+                                                    <Binding ElementName="SearchListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                        </MenuItem>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
+                <TabItem Classes="TabItemFillSpace" HorizontalAlignment="Stretch">
+                    <TabItem.Header>
+                        <TextBlock>
+                            <TextBlock.Text>
+                                <MultiBinding Converter="{x:Static views:SearchView.RefTabHeaderConverter}">
+                                    <Binding Path="RefTab.SearchResults.Count" />
+                                    <Binding Path="RefTab.RefFile.Name" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </TabItem.Header>
+                    <TabItem.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Go To" Click="OnGoToRefPackage">
+                                <MenuItem.Icon>
+                                    <Viewbox Width="16" Height="16">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource GoToIcon}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                        </ContextMenu>
+                    </TabItem.ContextMenu>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Grid Grid.Row="0" Margin="0 0 0 5" ZIndex="0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Grid Grid.Column="0" ZIndex="1" HorizontalAlignment="Left" Margin="5 2 0 0" IsHitTestVisible="False">
+                                <Viewbox Width="16" Height="16">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SearchIcon}" />
+                                    </Canvas>
+                                </Viewbox>
+                            </Grid>
+                            <TextBox x:Name="RefSearchTextBox" Grid.Column="0" Grid.ColumnSpan="2" Padding="25 0 0 0" VerticalContentAlignment="Center"
+                                     AcceptsTab="False" AcceptsReturn="False"
+                                     Text="{Binding RefTab.FilterText, Mode=TwoWay}"
+                                     Watermark="{Binding RefTab.HasRegexEnabled, Converter={StaticResource SearchWatermarkConverter}}" />
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <ToggleButton ToolTip.Tip="Match Case" Padding="5" IsChecked="{Binding RefTab.HasMatchCaseEnabled}" Classes="ToolbarToggleButton">
+                                    <Viewbox Width="16" Height="16" HorizontalAlignment="Center">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource MatchCaseIcon}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </ToggleButton>
+                                <ToggleButton ToolTip.Tip="Regex" Padding="5" IsChecked="{Binding RefTab.HasRegexEnabled}" Classes="ToolbarToggleButton">
+                                    <Viewbox Width="16" Height="16" HorizontalAlignment="Center">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource RegexIcon}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </ToggleButton>
+                                <Button ToolTip.Tip="Sort File Sizes" Padding="5" Classes="ToolbarButton" Click="OnSearchSortClick">
+                                    <Viewbox Width="16" Height="16" HorizontalAlignment="Center">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SortIcon}" />
+                                        </Canvas>
+                                    </Viewbox>
+                                </Button>
+                                <Button ToolTip.Tip="Clear Search Filter" Padding="5" Classes="ToolbarButton" Click="OnDeleteSearchClick">
+                                    <Viewbox Width="16" Height="16" HorizontalAlignment="Center">
+                                        <Canvas Width="24" Height="24">
+                                            <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource BackspaceIcon}"/>
+                                        </Canvas>
+                                    </Viewbox>
+                                </Button>
+                            </StackPanel>
+                            <TextBlock Grid.Column="2" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="10 0 0 0" FontStyle="Italic">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{}{0:# ### ### ##0} Packages with reference ({1})">
+                                        <Binding Path="RefTab.ResultsCount" FallbackValue="0" />
+                                        <Binding Path="RefTab.CurrentSortSizeMode" FallbackValue="None" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                        </Grid>
+
+                        <!-- WPF replaced the ListView template by this message when there were no items -->
+                        <TextBlock Grid.Row="1" Text="No references found in other packages" FontWeight="SemiBold" TextAlignment="Center" HorizontalAlignment="Stretch" VerticalAlignment="Top"
+                                   Foreground="{DynamicResource ErrorBrush}" Margin="0 10 0 0"
+                                   IsVisible="{Binding RefTab.SearchResultsView.IsEmpty, FallbackValue=True}" />
+                        <DataGrid Grid.Row="1" x:Name="RefListView" ItemsSource="{Binding RefTab.SearchResultsView}"
+                                  IsVisible="{Binding !RefTab.SearchResultsView.IsEmpty, FallbackValue=False}"
+                                  AutoGenerateColumns="False" IsReadOnly="True" SelectionMode="Extended" CanUserSortColumns="True"
+                                  CanUserReorderColumns="False" CanUserResizeColumns="True" HeadersVisibility="Column" GridLinesVisibility="None">
+                            <DataGrid.Columns>
+                                <DataGridTemplateColumn Width="900" Header="Path" SortMemberPath="Path">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" Text="{Binding Path}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="225" Header="Archive" CustomSortComparer="{x:Static views:SearchView.ArchiveComparer}">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock HorizontalAlignment="Left" VerticalAlignment="Center" Text="{Binding Vfs.Name}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Width="100" Header="Size" SortMemberPath="Size">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Text="{Binding Size, Converter={x:Static converters:SizeToStringConverter.Instance}}" Margin="0 0 30 0" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                            <DataGrid.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="Go To" Click="OnAssetDoubleClick">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource GoToIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Extract in New Tab" Click="OnAssetExtract">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource ExtractIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Show Metadata" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                        <MenuItem.CommandParameter>
+                                            <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                <Binding Source="Assets_Show_Metadata" />
+                                                <Binding ElementName="RefListView" Path="SelectedItems" />
+                                            </MultiBinding>
+                                        </MenuItem.CommandParameter>
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource InfoIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Find References" Click="OnFindRefs">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SearchIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="Decompile Blueprint" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                        <MenuItem.CommandParameter>
+                                            <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                <Binding Source="Assets_Decompile" />
+                                                <Binding ElementName="RefListView" Path="SelectedItems" />
+                                            </MultiBinding>
+                                        </MenuItem.CommandParameter>
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource CppIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                    </MenuItem>
+                                    <Separator />
+                                    <MenuItem Header="Export">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="M12 2l.117 .007a1 1 0 0 1 .876 .876l.007 .117v4l.005 .15a2 2 0 0 0 1.838 1.844l.157 .006h4l.117 .007a1 1 0 0 1 .876 .876l.007 .117v9a3 3 0 0 1 -2.824 2.995l-.176 .005h-10a3 3 0 0 1 -2.995 -2.824l-.005 -.176v-14a3 3 0 0 1 2.824 -2.995l.176 -.005zm1 10l-5 5v2h2l5 -5a1.414 1.414 0 0 0 -2 -2" />
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="M19 7h-4l-.001 -4.001z" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+
+                                        <MenuItem Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.Header>
+                                                <TextBlock Text="{Binding #RefListView.SelectedItem.Extension, FallbackValue='Raw Data', StringFormat='Raw Data (.{0})'}" />
+                                            </MenuItem.Header>
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Data" />
+                                                    <Binding ElementName="RefListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource ExportIcon}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Properties (.json)" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Properties" />
+                                                    <Binding ElementName="RefListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource SaveIcon}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Texture" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Textures" />
+                                                    <Binding ElementName="RefListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource TextureIcon}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Model" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Models" />
+                                                    <Binding ElementName="RefListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource ModelIcon}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="World" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Worlds" />
+                                                    <Binding ElementName="RefListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World1}" />
+                                                        <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World2}" />
+                                                        <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World3}" />
+                                                        <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World4}" />
+                                                        <Path StrokeThickness="2" Stroke="{DynamicResource ForegroundBrush}" Data="{StaticResource World5}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Animation" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Animations" />
+                                                    <Binding ElementName="RefListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource AnimationIcon}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                        <MenuItem Header="Audio" Command="{Binding mainApplication.RightClickMenuCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Save_Audio" />
+                                                    <Binding ElementName="RefListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                            <MenuItem.Icon>
+                                                <Viewbox Width="16" Height="16">
+                                                    <Canvas Width="24" Height="24">
+                                                        <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource AudioIcon}" />
+                                                    </Canvas>
+                                                </Viewbox>
+                                            </MenuItem.Icon>
+                                        </MenuItem>
+                                    </MenuItem>
+                                    <Separator />
+                                    <MenuItem Header="Copy">
+                                        <MenuItem.Icon>
+                                            <Viewbox Width="16" Height="16">
+                                                <Canvas Width="24" Height="24">
+                                                    <Path Fill="{DynamicResource ForegroundBrush}" Data="{StaticResource CopyIcon}" />
+                                                </Canvas>
+                                            </Viewbox>
+                                        </MenuItem.Icon>
+                                        <MenuItem Header="Package Path" Command="{Binding mainApplication.CopyCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="File_Path" />
+                                                    <Binding ElementName="RefListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                        </MenuItem>
+                                        <MenuItem Header="Package Name" Command="{Binding mainApplication.CopyCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="File_Name" />
+                                                    <Binding ElementName="RefListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                        </MenuItem>
+                                        <MenuItem Header="Directory Path" Command="{Binding mainApplication.CopyCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="Directory_Path" />
+                                                    <Binding ElementName="RefListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                        </MenuItem>
+                                        <MenuItem Header="Package Path w/o Extension" Command="{Binding mainApplication.CopyCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="File_Path_No_Extension" />
+                                                    <Binding ElementName="RefListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                        </MenuItem>
+                                        <MenuItem Header="Package Name w/o Extension" Command="{Binding mainApplication.CopyCommand}">
+                                            <MenuItem.CommandParameter>
+                                                <MultiBinding Converter="{x:Static converters:MultiParameterConverter.Instance}">
+                                                    <Binding Source="File_Name_No_Extension" />
+                                                    <Binding ElementName="RefListView" Path="SelectedItems" />
+                                                </MultiBinding>
+                                            </MenuItem.CommandParameter>
+                                        </MenuItem>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </DataGrid.ContextMenu>
+                        </DataGrid>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </GroupBox>
+    </Grid>
+</FWindow>

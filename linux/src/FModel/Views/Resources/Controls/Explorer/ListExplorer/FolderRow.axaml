@@ -1,0 +1,28 @@
+<UserControl x:Class="FModel.Views.Resources.Controls.ListExplorer.FolderRow"
+             xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- columns: ExplorerNameColumn / ExplorerTypeColumn / ExplorerDetailsColumn -->
+    <Grid Height="32" Margin="8,0" ColumnDefinitions="3*,1*,1.2*">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+            <Grid Width="20" Height="20" Margin="0 0 8 0">
+                <Viewbox>
+                    <Canvas Width="128" Height="128">
+                        <Path Fill="{DynamicResource TiledFolderTabBrush}" Stroke="{DynamicResource TiledFolderOutlineBrush}" StrokeThickness="2"
+                              Data="M20 34 H54 L62 46 H108 C112 46 115 49 115 53 V60 H13 V45 C13 39 16 34 20 34 Z" />
+                        <Path Fill="{DynamicResource TiledFolderBodyBrush}" Stroke="{DynamicResource TiledFolderOutlineBrush}" StrokeThickness="2"
+                              Data="M13 60 H115 V104 C115 110 110 115 104 115 H24 C18 115 13 110 13 104 Z" />
+                    </Canvas>
+                </Viewbox>
+            </Grid>
+            <TextBlock Text="{Binding Header}" VerticalAlignment="Center" FontSize="12" FontWeight="DemiBold"
+                       TextTrimming="CharacterEllipsis" Foreground="{DynamicResource ForegroundBrush}" />
+        </StackPanel>
+        <TextBlock Grid.Column="1" Text="Folder" VerticalAlignment="Center" FontSize="12"
+                   Foreground="{DynamicResource DisabledForegroundBrush}" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+            <TextBlock Text="{Binding Folders.Count, StringFormat='{}{0} folders'}" FontSize="12" Foreground="{DynamicResource DisabledForegroundBrush}" />
+            <TextBlock Text=", " FontSize="12" Foreground="{DynamicResource DisabledForegroundBrush}" />
+            <TextBlock Text="{Binding AssetsList.Assets.Count, StringFormat='{}{0} assets'}" FontSize="12" Foreground="{DynamicResource DisabledForegroundBrush}" />
+        </StackPanel>
+    </Grid>
+</UserControl>

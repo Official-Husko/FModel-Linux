@@ -1,0 +1,11 @@
+<FWindow x:Class="FModel.Views.Resources.Controls.PropertiesPopout"
+         xmlns="https://github.com/avaloniaui"
+         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+         xmlns:avalonEdit="https://github.com/avaloniaui/avaloniaedit"
+         WindowStartupLocation="CenterScreen">
+    <DockPanel HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <avalonEdit:TextEditor x:Name="MyAvalonEditor" Background="{DynamicResource Layer3BackgroundBrush}"
+                               FontFamily="{DynamicResource CodeFontFamily}" FontSize="10.667" IsReadOnly="True" ShowLineNumbers="True" Foreground="#DAE5F2"
+                               PointerHover="OnMouseHover" PointerHoverStopped="OnMouseHoverStopped" />
+    </DockPanel>
+</FWindow>

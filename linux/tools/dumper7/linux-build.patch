@@ -1,0 +1,155 @@
+diff --git a/Dumper/Engine/Private/Unreal/ObjectArray.cpp b/Dumper/Engine/Private/Unreal/ObjectArray.cpp
+index 516a341..b6d10e0 100644
+--- a/Dumper/Engine/Private/Unreal/ObjectArray.cpp
++++ b/Dumper/Engine/Private/Unreal/ObjectArray.cpp
+@@ -482,7 +482,7 @@ int32 ObjectArray::MaxChunks()
+ }
+ 
+ template<typename UEType>
+-static UEType ObjectArray::GetByIndex(int32 Index)
++UEType ObjectArray::GetByIndex(int32 Index)
+ {
+ 	return UEType(ByIndex(GObjects + Off::FUObjectArray::GetObjectsOffset(), Index, SizeOfFUObjectItem, FUObjectItemInitialOffset, NumElementsPerChunk));
+ }
+@@ -518,7 +518,7 @@ UEType ObjectArray::FindObjectFast(const std::string& Name, EClassCastFlags Requ
+ }
+ 
+ template<typename UEType>
+-static UEType ObjectArray::FindObjectFastInOuter(const std::string& Name, std::string Outer)
++UEType ObjectArray::FindObjectFastInOuter(const std::string& Name, std::string Outer)
+ {
+ 	auto ObjArray = ObjectArray();
+ 
+diff --git a/Dumper/Engine/Private/Unreal/UnrealTypes.cpp b/Dumper/Engine/Private/Unreal/UnrealTypes.cpp
+index d4c2520..208c5e9 100644
+--- a/Dumper/Engine/Private/Unreal/UnrealTypes.cpp
++++ b/Dumper/Engine/Private/Unreal/UnrealTypes.cpp
+@@ -97,7 +97,7 @@ void FName::Init_Windows(bool bForceGNames)
+ 
+ 		for (int i = 0; !AppendString && i < PossibleSigs.size(); i++)
+ 		{
+-			AppendString = static_cast<decltype(AppendString)>(Platform::FindPatternInRange(PossibleSigs[i], StringRef, 0x50, true, -1/* auto */));
++			AppendString = reinterpret_cast<decltype(AppendString)>(Platform::FindPatternInRange(PossibleSigs[i], StringRef, 0x50, true, -1/* auto */));
+ 
+ 			if (AppendString)
+ 				MatchingSig = PossibleSigs[i];
+@@ -124,7 +124,7 @@ void FName::Init_Windows(bool bForceGNames)
+ 			GetNameEntryFromName = reinterpret_cast<decltype(GetNameEntryFromName)>(Architecture_x86_64::Resolve32BitRelativeCall(ResultAsInt + 0x3));
+ 			AppendString = reinterpret_cast<decltype(AppendString)>(Architecture_x86_64::Resolve32BitRelativeCall(ResultAsInt + 0x10));
+ 
+-			Off::InSDK::Name::GetNameEntryFromName = Platform::GetOffset(GetNameEntryFromName);
++			Off::InSDK::Name::GetNameEntryFromName = Platform::GetOffset(reinterpret_cast<const void*>(GetNameEntryFromName));
+ 			Off::InSDK::Name::bIsAppendStringInlinedAndUsed = true;
+ 
+ 			ToStr = [](const void* Name) -> std::wstring
+@@ -147,9 +147,9 @@ void FName::Init_Windows(bool bForceGNames)
+ 	}
+ 
+ 	if (AppendString == nullptr)
+-		AppendString = static_cast<decltype(AppendString)>(TryFindApendStringBackupStringRef_Windows());
++		AppendString = reinterpret_cast<decltype(AppendString)>(TryFindApendStringBackupStringRef_Windows());
+ 
+-	Off::InSDK::Name::AppendNameToString = AppendString && !bForceGNames ? Platform::GetOffset(AppendString) : 0x0;
++	Off::InSDK::Name::AppendNameToString = AppendString && !bForceGNames ? Platform::GetOffset(reinterpret_cast<const void*>(AppendString)) : 0x0;
+ 
+ 	if (!AppendString || bForceGNames)
+ 	{
+@@ -279,10 +279,10 @@ void* FName::TryFindApendStringBackupStringRef_Windows()
+ 
+ 		for (int i = 0; !AppendString && i < PossibleSigs.size(); i++)
+ 		{
+-			AppendString = static_cast<decltype(AppendString)>(Platform::FindPatternInRange(PossibleSigs[i], SigSearchStartAddress, 0x100, true, -1/* auto */));
++			AppendString = reinterpret_cast<decltype(AppendString)>(Platform::FindPatternInRange(PossibleSigs[i], SigSearchStartAddress, 0x100, true, -1/* auto */));
+ 
+ 			if (AppendString)
+-				return AppendString;
++				return reinterpret_cast<void*>(AppendString);
+ 		}
+ 	}
+ #endif // PLATFORM_WINDOWS
+@@ -306,12 +306,12 @@ void FName::InitFallback()
+ 	int i = 0;
+ 	while (!AppendString && i < PossibleSigs.size())
+ 	{
+-		AppendString = static_cast<decltype(AppendString)>(Platform::FindPatternInRange(PossibleSigs[i], Conv_NameToStringAddress, 0x90, -1 /* auto */));
++		AppendString = reinterpret_cast<decltype(AppendString)>(Platform::FindPatternInRange(PossibleSigs[i], Conv_NameToStringAddress, 0x90, -1 /* auto */));
+ 
+ 		i++;
+ 	}
+ 
+-	Off::InSDK::Name::AppendNameToString = AppendString ? Platform::GetOffset(AppendString) : 0x0;
++	Off::InSDK::Name::AppendNameToString = AppendString ? Platform::GetOffset(reinterpret_cast<const void*>(AppendString)) : 0x0;
+ }
+ 
+ 
+diff --git a/Dumper/Engine/Public/Unreal/UnrealContainers.h b/Dumper/Engine/Public/Unreal/UnrealContainers.h
+index fcb8d85..7202594 100644
+--- a/Dumper/Engine/Public/Unreal/UnrealContainers.h
++++ b/Dumper/Engine/Public/Unreal/UnrealContainers.h
+@@ -214,7 +214,7 @@ namespace UC
+ 	class TArray
+ 	{
+ 	private:
+-		template<typename ArrayElementType>
++		template<typename>
+ 		friend class TAllocatedArray;
+ 
+ 		template<typename SparseArrayElementType>
+diff --git a/Dumper/Utils/Dumpspace/DSGen.cpp b/Dumper/Utils/Dumpspace/DSGen.cpp
+index b3d0fdf..f38f667 100644
+--- a/Dumper/Utils/Dumpspace/DSGen.cpp
++++ b/Dumper/Utils/Dumpspace/DSGen.cpp
+@@ -1,3 +1,4 @@
++#include <stdexcept>
+ #include "DSGen.h"
+ 
+ #include <fstream>
+@@ -185,7 +186,7 @@ void DSGen::bakeEnum(EnumHolder& enumHolder)
+ void DSGen::dump()
+ {
+ 	if (directory.empty())
+-		throw std::exception("Please initialize a directory first!");
++		throw std::runtime_error("Please initialize a directory first!");
+ 
+ 	constexpr auto version = 10202;
+ 
+diff --git a/Dumper/Utils/Encoding/UtfN.hpp b/Dumper/Utils/Encoding/UtfN.hpp
+index d87aa65..a10556f 100644
+--- a/Dumper/Utils/Encoding/UtfN.hpp
++++ b/Dumper/Utils/Encoding/UtfN.hpp
+@@ -301,7 +301,7 @@ namespace UtfN
+ 					typename = decltype(std::begin(std::declval<container_type>())), // Has begin
+ 					typename = decltype(std::end(std::declval<container_type>())),   // Has end
+ 					typename iterator_deref_type = decltype(*std::end(std::declval<container_type>())), // Iterator can be dereferenced
+-					typename = std::enable_if<sizeof(std::decay<iterator_deref_type>::type) == utf_char_type::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
++					typename = std::enable_if<sizeof(typename std::decay<iterator_deref_type>::type) == utf_char_type::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
+ 				>
+ 				explicit UTF_CONSTEXPR utf_char_iterator_base(container_type& Container)
+ 					: CurrentIterator(std::begin(Container)), NextCharStartIterator(std::begin(Container)), EndIterator(std::end(Container))
+@@ -758,7 +758,7 @@ namespace UtfN
+ 	template<
+ 		typename codepoint_iterator_type,
+ 		typename iterator_deref_type = decltype(*std::declval<codepoint_iterator_type>()), // Iterator can be dereferenced
+-		typename = typename std::enable_if<sizeof(std::decay<iterator_deref_type>::type) == utf_char8::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
++		typename = typename std::enable_if<sizeof(typename std::decay<iterator_deref_type>::type) == utf_char8::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
+ 	>
+ 	class utf8_iterator : public UtfImpl::Iterator::utf_char_iterator_base<utf8_iterator<codepoint_iterator_type>, codepoint_iterator_type, utf_char8>
+ 	{
+@@ -803,7 +803,7 @@ namespace UtfN
+ 	template<
+ 		typename codepoint_iterator_type,
+ 		typename iterator_deref_type = decltype(*std::declval<codepoint_iterator_type>()), // Iterator can be dereferenced
+-		typename = typename std::enable_if<sizeof(std::decay<iterator_deref_type>::type) == utf_char16::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
++		typename = typename std::enable_if<sizeof(typename std::decay<iterator_deref_type>::type) == utf_char16::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
+ 	>
+ 	class utf16_iterator : public UtfImpl::Iterator::utf_char_iterator_base<utf16_iterator<codepoint_iterator_type>, codepoint_iterator_type, utf_char16>
+ 	{
+@@ -859,7 +859,7 @@ namespace UtfN
+ 	template<
+ 		typename codepoint_iterator_type,
+ 		typename iterator_deref_type = decltype(*std::declval<codepoint_iterator_type>()), // Iterator can be dereferenced
+-		typename = typename std::enable_if<sizeof(std::decay<iterator_deref_type>::type) == utf_char32::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
++		typename = typename std::enable_if<sizeof(typename std::decay<iterator_deref_type>::type) == utf_char32::GetCodepointSize()>::type // Return-value of derferenced iterator has the same size as one codepoint
+ 	>
+ 	class utf32_iterator : public UtfImpl::Iterator::utf_char_iterator_base<utf32_iterator<codepoint_iterator_type>, codepoint_iterator_type, utf_char32>
+ 	{

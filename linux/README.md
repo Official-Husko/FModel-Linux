@@ -114,6 +114,22 @@ FMODEL_SELFTEST=1 FMODEL_SELFTEST_FOLDER=Game/Content FMODEL_SELFTEST_ACTIONS=li
 It uses the game configured in the settings, writes `Output/Logs/SelfTest-*.txt`, and exits with the
 number of failed exports.
 
+## Getting mappings for unversioned games
+
+Many UE5 games need a `.usmap` mappings file, dumped from the running game. [Dumper-7](https://github.com/Encryqed/Dumper-7)
+does that, and since the game runs as a Windows program under Proton/Wine, Dumper-7's Windows DLL works
+there as is. It only ships as source for Visual Studio, so this repository can build it on Linux:
+
+```sh
+linux/tools/dumper7/build.sh        # -> linux/out/Dumper-7.dll
+```
+
+(clang, lld, cmake, ninja and MinGW-w64 needed.) Then load it into the game, for example with Ultimate ASI
+Loader: put the loader next to the game's `*-Shipping.exe` as `version.dll`, `Dumper-7.dll` beside it renamed
+to `Dumper-7.asi`, and launch with `WINEDLLOVERRIDES="version=n,b"`. The dump lands in the prefix under
+`drive_c/Dumper-7/`; point FModel's local mapping file setting at the `.usmap` in its `Mappings` folder.
+Only do this with games without anti-cheat.
+
 ## Credits
 
 The Avalonia views and several building blocks (audio playback, file dialogs, the virtualized explorer)

@@ -1,3 +1,6 @@
+> **This is the Linux edition of FModel.** It follows the official repository commit for commit and adds a
+> native Linux build (AppImage and tarball). Downloads, building and how the sync works: [linux/README.md](linux/README.md).
+
 FModel - An Unreal Engine Archives Explorer in C#
 ------------------------------------------
 

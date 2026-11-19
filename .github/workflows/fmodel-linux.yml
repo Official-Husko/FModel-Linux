@@ -1,0 +1,162 @@
+name: FModel Linux
+
+# Keeps this fork in lockstep with the official FModel and publishes Linux builds.
+#
+#  schedule / manual run: merge 4sval/FModel@dev, build, and only if the build passes push the merge to dev
+#                         and publish a release. A conflict or a broken build leaves dev alone, parks the
+#                         merge on an upstream-sync/* branch and opens an issue instead.
+#  push to dev:           build and publish a release for that commit.
+#  pull request:          build only.
+
+on:
+  schedule:
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+  push:
+    branches: [ dev ]
+    paths: [ 'linux/**', 'FModel/**', 'CUE4Parse', 'Snooper', '.github/workflows/fmodel-linux.yml' ]
+  pull_request:
+    paths: [ 'linux/**', 'FModel/**', 'CUE4Parse', 'Snooper' ]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: fmodel-linux-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SYNC: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Prepare git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/4sval/FModel.git
+          git fetch --quiet upstream dev
+
+      - name: Merge upstream
+        id: sync
+        if: env.SYNC == 'true'
+        run: |
+          before="$(git rev-parse HEAD)"
+          if ! linux/scripts/sync-upstream.sh --no-build > sync.log 2>&1; then
+            cat sync.log
+            echo "conflict=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          cat sync.log
+          [ "$(git rev-parse HEAD)" != "$before" ] && echo "merged=true" >> "$GITHUB_OUTPUT" || true
+
+      - name: Report merge conflict
+        if: steps.sync.outputs.conflict == 'true'
+        run: |
+          upstream="$(git rev-parse --short upstream/dev)"
+          files="$(git diff --name-only --diff-filter=U | sed 's/^/- `/;s/$/`/')"
+          git merge --abort || true
+          title="Upstream sync conflicts with 4sval/FModel@$upstream"
+          if ! gh issue list --state open --search "$title in:title" --json number --jq '.[0].number' | grep -q .; then
+            gh issue create --title "$title" --body "$(printf 'Merging the latest official FModel into `dev` conflicts in:\n\n%s\n\nRun `linux/scripts/sync-upstream.sh` locally, resolve the conflicts and push.\n' "$files")"
+          fi
+          exit 1
+
+      - name: Install build tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq cmake g++ > /dev/null
+
+      - name: Build AppImage and tarball
+        id: build
+        run: |
+          export UPSTREAM_COMMIT="$(git merge-base HEAD upstream/dev)"
+          echo "upstream=$UPSTREAM_COMMIT" >> "$GITHUB_OUTPUT"
+          echo "version=$(grep -oPm1 '(?<=<Version>)[^<]+' FModel/FModel.csproj)" >> "$GITHUB_OUTPUT"
+          linux/scripts/build-appimage.sh
+          linux/scripts/build.sh linux-x64
+
+      - name: Park a merge that does not build
+        if: failure() && steps.sync.outputs.merged == 'true'
+        run: |
+          upstream="$(git rev-parse --short upstream/dev)"
+          branch="upstream-sync/$upstream"
+          git push --force origin "HEAD:refs/heads/$branch"
+          title="Linux build fails after syncing 4sval/FModel@$upstream"
+          if ! gh issue list --state open --search "$title in:title" --json number --jq '.[0].number' | grep -q .; then
+            gh issue create --title "$title" --body "The merge is on \`$branch\` and \`dev\` was left untouched. Build log: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          fi
+
+      - name: Drift report
+        id: drift
+        run: |
+          set +e
+          linux/scripts/drift.sh > drift.md
+          echo "status=$?" >> "$GITHUB_OUTPUT"
+          cat drift.md >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FModel-linux
+          path: |
+            linux/out/FModel-x86_64.AppImage
+            linux/out/FModel-linux-x64.tar.gz
+
+      - name: Push the merge
+        if: steps.sync.outputs.merged == 'true'
+        run: git push origin HEAD:dev
+
+      - name: Publish release
+        if: github.event_name != 'pull_request' && (steps.sync.outputs.merged == 'true' || github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        run: |
+          upstream="${{ steps.build.outputs.upstream }}"
+          version="${{ steps.build.outputs.version }}"
+          tag="linux-$version-${upstream:0:7}-$(git rev-parse --short=7 HEAD)"
+          if gh release view "$tag" > /dev/null 2>&1; then
+            echo "$tag already published"
+            exit 0
+          fi
+
+          previous="$(gh release list --limit 20 --json tagName --jq '[.[] | select(.tagName | startswith("linux-"))][0].tagName // empty')"
+          {
+            echo "Native Linux build of FModel $version, matching the official repository at"
+            echo "[4sval/FModel@${upstream:0:7}](https://github.com/4sval/FModel/commit/$upstream)."
+            echo
+            echo "Upstream commit: \`$upstream\`"
+            echo
+            echo "**FModel-x86_64.AppImage**: download, \`chmod +x\`, run. Everything is bundled."
+            echo "**FModel-linux-x64.tar.gz**: the same build as a folder, with \`install.sh\` for a desktop entry."
+            echo
+            if [ -n "$previous" ]; then
+              echo "### Changes since $previous"
+              echo
+              git log --no-merges --format='- %s' "$previous..HEAD" 2>/dev/null | head -40
+              echo
+            fi
+            cat drift.md
+          } > notes.md
+
+          cp linux/out/FModel-x86_64.AppImage linux/out/FModel-linux-x64.tar.gz .
+          gh release create "$tag" FModel-x86_64.AppImage FModel-linux-x64.tar.gz \
+            --title "FModel $version for Linux (${upstream:0:7})" --notes-file notes.md --target "$(git rev-parse HEAD)" --latest
+
+      - name: Flag views to port
+        if: steps.drift.outputs.status == '2' && github.event_name != 'pull_request'
+        run: |
+          title="Upstream UI changes to port to Linux"
+          number="$(gh issue list --state open --search "$title in:title" --json number --jq '.[0].number')"
+          if [ -n "$number" ]; then
+            gh issue edit "$number" --body-file drift.md
+          else
+            gh issue create --title "$title" --body-file drift.md
+          fi

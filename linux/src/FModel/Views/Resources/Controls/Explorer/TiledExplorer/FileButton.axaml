@@ -15,6 +15,7 @@
                         <Binding Path="AssetCategory" />
                         <Binding Path="ResolvedAssetType" />
                         <Binding Path="AssetFamily" />
+                        <Binding Path="IconStyle" />
                     </MultiBinding>
                 </Path.Data>
                 <Path.Fill>
@@ -22,6 +23,7 @@
                         <Binding Path="AssetCategory" />
                         <Binding Path="ResolvedAssetType" />
                         <Binding Path="AssetFamily" />
+                        <Binding Path="IconStyle" />
                     </MultiBinding>
                 </Path.Fill>
             </Path>

@@ -153,6 +153,9 @@ public partial class MainWindow : FWindow
             }),
             UserSettings.Default.DecompileLua ? ApplicationViewModel.InitUnluac() : Task.CompletedTask
         ).ConfigureAwait(false);
+
+        if (FModel.Linux.SelfTest.IsEnabled)
+            await FModel.Linux.SelfTest.RunAsync();
     }
 
     private void OnThreadWorkerPropertyChanged(object sender, PropertyChangedEventArgs e)
